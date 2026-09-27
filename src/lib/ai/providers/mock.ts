@@ -97,6 +97,66 @@ function mockCheck(text: string): string {
   });
 }
 
+/** Тестовый разбор эссе: находит одну типичную ошибку, если она есть. */
+function mockWriting(request: CompletionRequest): string {
+  const text = lastStudentText(request);
+  const words = (text.match(/[A-Za-z']+/g) ?? []).length;
+  const band = words >= 240 ? 6 : words >= 140 ? 5.5 : 5;
+  const mistake = MOCK_MISTAKES.find((item) => item.pattern.test(text));
+  const mistakes = [];
+  if (mistake) {
+    const match = text.match(mistake.pattern);
+    if (match) {
+      const quote = match[0];
+      mistakes.push({
+        quote,
+        type: "grammar",
+        hint: "Тестовый режим: проверь согласование подлежащего и глагола.",
+        correction: quote.replace(mistake.pattern, (_m, ...groups: string[]) => mistake.fix(...groups)),
+      });
+    }
+  }
+  return JSON.stringify({
+    task: { band, comment: "Тестовый режим: здесь ИИ оценит, насколько полно выполнено задание." },
+    coherence: { band, comment: "Тестовый режим: оценка связности и логики абзацев." },
+    lexical: { band: band - 0.5, comment: "Тестовый режим: оценка словарного запаса." },
+    grammar: { band: band - 0.5, comment: "Тестовый режим: оценка грамматики." },
+    task_check: "Тестовый режим: настоящий ИИ проверит, раскрыты ли все пункты задания.",
+    mistakes,
+    strengths: ["Тестовый режим: сильные стороны текста."],
+    improvements: ["Тестовый режим: что улучшить в первую очередь."],
+  });
+}
+
+/** Тестовый разбор ответа Speaking. */
+function mockSpeaking(request: CompletionRequest): string {
+  const all = request.messages.map((message) => message.content).join("\n");
+  const answers = [...all.matchAll(/Ответ: """([\s\S]*?)"""/g)].map((match) => match[1]).join(" ");
+  const mistake = MOCK_MISTAKES.find((item) => item.pattern.test(answers));
+  const corrections = [];
+  if (mistake) {
+    const match = answers.match(mistake.pattern);
+    if (match) {
+      corrections.push({
+        quote: match[0],
+        correction: match[0].replace(mistake.pattern, (_m, ...groups: string[]) => mistake.fix(...groups)),
+        explanation: `Тестовый режим: ${mistake.explanation}`,
+      });
+    }
+  }
+  return JSON.stringify({
+    fluency: { band: 5.5, comment: "Тестовый режим: оценка беглости по расшифровке." },
+    lexical: { band: 5.5, comment: "Тестовый режим: оценка словарного запаса." },
+    grammar: { band: 5, comment: "Тестовый режим: оценка грамматики." },
+    pronunciation_note: "Тестовый режим: подсказки о произношении по автоматическому распознаванию — это лишь предположение.",
+    structure: "Тестовый режим: анализ структуры ответа.",
+    corrections,
+    improved_answer: "In my free time I really enjoy walking along the river, because it helps me relax after a busy day. (Test mode)",
+    follow_up: ["Why do you think people enjoy spending time near water?", "How has your free time changed over the years?"],
+    tips: ["Тестовый режим: развивай ответ — причина и пример."],
+  });
+}
+
 export function createMockProvider(): AiProvider {
   return {
     id: "mock",
@@ -115,6 +175,12 @@ export function createMockProvider(): AiProvider {
           break;
         case "check":
           text = mockCheck(said);
+          break;
+        case "exam_writing":
+          text = mockWriting(request);
+          break;
+        case "exam_speaking":
+          text = mockSpeaking(request);
           break;
         default:
           text = "Hi! I'm Otti, your English tutor. (Привет! Я Отти, твой репетитор английского.)";

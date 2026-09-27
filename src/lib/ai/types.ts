@@ -16,8 +16,11 @@ export type ChatMessage = {
   content: string;
 };
 
-/** Для чего запрос: ping — проверка связи, chat — реплика в чате, summary — итоги занятия, check — проверка ответа. */
-export type AiPurpose = "ping" | "chat" | "summary" | "check";
+/**
+ * Для чего запрос: ping — проверка связи, chat — реплика в чате, summary — итоги занятия,
+ * check — проверка ответа в уроке, exam_writing / exam_speaking — проверка IELTS Writing и Speaking.
+ */
+export type AiPurpose = "ping" | "chat" | "summary" | "check" | "exam_writing" | "exam_speaking";
 
 export type CompletionRequest = {
   messages: ChatMessage[];

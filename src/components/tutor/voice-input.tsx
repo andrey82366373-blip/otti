@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 /* Распознавание речи встроено в браузер (Chrome, Edge, Safari). Отдельный ключ не нужен. */
 
-type RecognitionResult = { isFinal: boolean; 0: { transcript: string } };
+type RecognitionResult = { isFinal: boolean; 0: { transcript: string; confidence: number } };
 type RecognitionEvent = Event & { results: ArrayLike<RecognitionResult> };
 type Recognition = {
   lang: string;
@@ -43,6 +43,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   "language-not-supported": "Браузер не умеет распознавать английскую речь.",
 };
 
+/** Распознанный фрагмент речи и уверенность распознавателя (0–1). */
+export type RecognizedSegment = { text: string; confidence: number };
+
 /** Кнопка «Сказать голосом»: распознанный английский текст попадает в поле сообщения. */
 export function VoiceInputButton({
   disabled,
@@ -50,6 +53,9 @@ export function VoiceInputButton({
   onText,
   onError,
   onListeningChange,
+  continuous = false,
+  onSegment,
+  size = "icon",
 }: {
   disabled: boolean;
   /** Текст, который уже есть в поле, — к нему добавится сказанное. */
@@ -57,6 +63,11 @@ export function VoiceInputButton({
   onText: (text: string) => void;
   onError: (message: string) => void;
   onListeningChange: (listening: boolean) => void;
+  /** Длинный ответ (Speaking): слушать, пока ученик сам не нажмёт «стоп». */
+  continuous?: boolean;
+  /** Готовые фрагменты с уверенностью распознавания — для осторожных подсказок о произношении. */
+  onSegment?: (segment: RecognizedSegment) => void;
+  size?: "icon" | "large";
 }) {
   const supported = useSyncExternalStore(noop, () => Boolean(getRecognition()), () => false);
   const [listening, setListening] = useState(false);
@@ -83,16 +94,22 @@ export function VoiceInputButton({
     const recognition = new Constructor();
     recognition.lang = "en-US";
     recognition.interimResults = true;
-    recognition.continuous = false;
+    recognition.continuous = continuous;
     recognition.maxAlternatives = 1;
 
     const base = getBaseText().trim();
+    const reported = new Set<number>();
     recognition.onresult = (event) => {
       let transcript = "";
       for (let index = 0; index < event.results.length; index += 1) {
-        transcript += event.results[index][0].transcript;
+        const result = event.results[index];
+        transcript += `${result[0].transcript} `;
+        if (result.isFinal && onSegment && !reported.has(index)) {
+          reported.add(index);
+          onSegment({ text: result[0].transcript.trim(), confidence: result[0].confidence });
+        }
       }
-      onText([base, transcript.trim()].filter(Boolean).join(" "));
+      onText([base, transcript.replace(/\s+/g, " ").trim()].filter(Boolean).join(" "));
     };
     recognition.onerror = (event) => {
       if (event.error === "aborted") return;
@@ -110,6 +127,23 @@ export function VoiceInputButton({
     } catch {
       onError("Не удалось включить микрофон. Попробуй ещё раз.");
     }
+  }
+
+  if (size === "large") {
+    return (
+      <Button
+        type="button"
+        size="lg"
+        variant={listening ? "default" : "outline"}
+        className={cn("gap-2", listening && "animate-pulse")}
+        aria-pressed={listening}
+        onClick={toggle}
+        disabled={disabled && !listening}
+      >
+        {listening ? <Square aria-hidden /> : <Mic aria-hidden />}
+        {listening ? "Остановить запись" : "Ответить голосом"}
+      </Button>
+    );
   }
 
   return (

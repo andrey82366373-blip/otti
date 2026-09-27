@@ -17,12 +17,23 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
+import type {
+  DiagnosticResult,
+  IeltsLevel,
+  IeltsModule,
+  ObjectiveReviewItem,
+  SpeakingFeedback,
+  StudyPlan,
+  WeakestSkill,
+  WritingFeedback,
+} from "@/lib/exams/types";
 import type { CefrLevel, LearningGoal } from "@/lib/learning";
 
 /* ─────────────────────────── Справочные значения ─────────────────────────── */
@@ -448,4 +459,105 @@ export const userAchievements = pgTable(
     earnedAt: timestamp("earned_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [primaryKey({ columns: [table.userId, table.code] })],
+);
+
+/* ─────────────────────────── Подготовка к экзаменам ─────────────────────────── */
+
+/** Настройки подготовки к экзамену (пока только IELTS): модуль, цель, дата, план. */
+export const examProfiles = pgTable(
+  "exam_profiles",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    exam: text("exam").notNull().default("ielts"),
+    module: text("module").$type<IeltsModule>().notNull(),
+    targetBand: real("target_band").notNull(),
+    /** Дата экзамена; null — ещё не известна. */
+    examDate: date("exam_date"),
+    currentLevel: text("current_level").$type<IeltsLevel>().notNull(),
+    sessionsPerWeek: integer("sessions_per_week").notNull(),
+    weakestSkill: text("weakest_skill").$type<WeakestSkill>().notNull(),
+    plan: jsonb("plan").$type<StudyPlan>(),
+    diagnostic: jsonb("diagnostic").$type<DiagnosticResult>(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.exam] })],
+);
+
+/**
+ * Попытки экзаменационных заданий: Reading и Listening — с баллами за вопросы,
+ * Writing и Speaking — с примерной оценкой ИИ. Сервер сам проверяет ответы.
+ */
+export const examAttempts = pgTable(
+  "exam_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    exam: text("exam").notNull().default("ielts"),
+    /** reading | listening | writing | speaking */
+    skill: text("skill").notNull(),
+    taskId: text("task_id").notNull(),
+    /** practice — учебный режим, exam — как на экзамене, diagnostic — диагностика. */
+    mode: text("mode").notNull(),
+    correct: integer("correct").notNull().default(0),
+    total: integer("total").notNull().default(0),
+    bandLow: real("band_low"),
+    bandHigh: real("band_high"),
+    answers: jsonb("answers").$type<Record<string, string | number | null>>(),
+    review: jsonb("review").$type<ObjectiveReviewItem[]>(),
+    durationSec: integer("duration_sec").notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (table) => [index("exam_attempts_user_skill_idx").on(table.userId, table.skill, table.createdAt)],
+);
+
+/** Черновики Writing и заметки Speaking — чтобы текст не пропал при обновлении страницы. */
+export const examDrafts = pgTable(
+  "exam_drafts",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    taskId: text("task_id").notNull(),
+    text: text("text").notNull().default(""),
+    updatedAt: updatedAt(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.taskId] })],
+);
+
+/**
+ * Проверки Writing и Speaking через ИИ. Один и тот же текст проверяется один раз:
+ * повторный запрос (или обновление страницы) возвращает сохранённую оценку.
+ * По этой таблице считается дневной лимит проверок.
+ */
+export const examAiChecks = pgTable(
+  "exam_ai_checks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** writing | speaking */
+    kind: text("kind").notNull(),
+    taskId: text("task_id").notNull(),
+    /** Отпечаток проверяемого текста (SHA-256): одинаковый текст — одна проверка. */
+    contentHash: text("content_hash").notNull(),
+    /** pending — проверка идёт; done — готово. */
+    status: text("status").notNull(),
+    /** День по Москве — для дневного лимита. */
+    day: date("day").notNull(),
+    writing: jsonb("writing").$type<WritingFeedback>(),
+    speaking: jsonb("speaking").$type<SpeakingFeedback>(),
+    /** Проверенный текст (эссе или расшифровка ответа). */
+    content: text("content").notNull().default(""),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("exam_ai_checks_unique_idx").on(table.userId, table.kind, table.taskId, table.contentHash),
+    index("exam_ai_checks_user_day_idx").on(table.userId, table.kind, table.day),
+  ],
 );

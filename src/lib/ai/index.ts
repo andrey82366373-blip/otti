@@ -254,6 +254,8 @@ export async function askAi(input: {
   temperature?: number;
   requestId?: string;
   validate?: (text: string) => boolean;
+  /** Подробный ответ (проверка эссе): больше токенов и больше времени на попытку. */
+  longOutput?: boolean;
 }): Promise<AskAiResult> {
   const config = getAiConfig();
   const requestId = input.requestId ?? newRequestId();
@@ -294,9 +296,10 @@ export async function askAi(input: {
     });
   }
 
+  const tokenCap = input.longOutput ? config.limits.examMaxOutputTokens : config.limits.maxOutputTokens;
   const request: CompletionRequest = {
     messages: input.messages,
-    maxTokens: Math.min(input.maxTokens ?? config.limits.maxOutputTokens, config.limits.maxOutputTokens),
+    maxTokens: Math.min(input.maxTokens ?? tokenCap, tokenCap),
     temperature: input.temperature ?? 0.7,
     purpose: input.purpose,
   };
@@ -306,8 +309,10 @@ export async function askAi(input: {
   );
   const failures: AiProviderError[] = [];
   const started = performance.now();
-  const deadline = Date.now() + config.totalTimeoutMs;
-  const attempts = 1 + config.maxRetries;
+  // Длинный ответ (эссе) генерируется дольше: на попытку и на весь запрос даём в два раза больше времени
+  const attemptTimeout = input.longOutput ? config.timeoutMs * 2 : config.timeoutMs;
+  const deadline = Date.now() + (input.longOutput ? config.totalTimeoutMs * 2 : config.totalTimeoutMs);
+  const attempts = 1 + (input.longOutput ? Math.min(1, config.maxRetries) : config.maxRetries);
   // Меньше этого времени на попытку не даём: всё равно не успеет
   const MIN_ATTEMPT_MS = 3000;
 
@@ -317,7 +322,7 @@ export async function askAi(input: {
       if (remaining < MIN_ATTEMPT_MS) break providers;
       const attemptStarted = performance.now();
       try {
-        const result = await callProvider(id, request, Math.min(config.timeoutMs, remaining));
+        const result = await callProvider(id, request, Math.min(attemptTimeout, remaining));
         const text = cleanText(result.text);
         if (!text) {
           throw new AiProviderError(id, "bad_response", "пустой ответ", undefined, true);

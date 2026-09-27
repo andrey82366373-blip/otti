@@ -38,6 +38,12 @@ export type AiLimits = {
   maxInputChars: number;
   /** Максимальная длина ответа ИИ в токенах. */
   maxOutputTokens: number;
+  /** Длина ответа для подробной проверки IELTS Writing и Speaking, токенов. */
+  examMaxOutputTokens: number;
+  /** Проверок IELTS Writing на ученика в день. */
+  examWritingDaily: number;
+  /** Проверок IELTS Speaking на ученика в день. */
+  examSpeakingDaily: number;
   /** Сколько последних сообщений диалога отправлять ИИ как контекст. */
   historyMessages: number;
   /** Максимум сообщений в одном разговоре. */
@@ -98,6 +104,9 @@ export function getAiConfig(): AiConfig {
       globalDaily: readInt("AI_GLOBAL_DAILY_LIMIT", 500, 0, 1_000_000),
       maxInputChars: readInt("AI_MAX_INPUT_CHARS", 500, 50, 4000),
       maxOutputTokens: readInt("AI_MAX_OUTPUT_TOKENS", 800, 100, 4000),
+      examMaxOutputTokens: readInt("AI_EXAM_MAX_OUTPUT_TOKENS", 1800, 400, 6000),
+      examWritingDaily: readInt("IELTS_WRITING_CHECKS_PER_DAY", 3, 0, 100),
+      examSpeakingDaily: readInt("IELTS_SPEAKING_CHECKS_PER_DAY", 5, 0, 100),
       historyMessages: readInt("AI_HISTORY_MESSAGES", 12, 2, 50),
       threadMaxMessages: readInt("AI_THREAD_MAX_MESSAGES", 60, 10, 500),
     },

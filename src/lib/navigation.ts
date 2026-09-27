@@ -1,4 +1,5 @@
 import {
+  Award,
   BookA,
   ChartColumn,
   GraduationCap,
@@ -16,12 +17,13 @@ export type NavItem = {
   also?: string[];
 };
 
-/** Пять главных разделов: нижняя панель на телефоне и боковое меню на компьютере. */
+/** Главные разделы: нижняя панель на телефоне и боковое меню на компьютере. */
 export const mainNav: NavItem[] = [
   { href: "/learn", label: "Обучение", icon: GraduationCap, also: ["/lesson"] },
   { href: "/tutor", label: "Репетитор", icon: MessageCircle },
   { href: "/words", label: "Словарь", icon: BookA },
   { href: "/mistakes", label: "Ошибки", icon: RotateCcw },
+  { href: "/exams", label: "Экзамены", icon: Award },
   { href: "/progress", label: "Прогресс", icon: ChartColumn },
 ];
 
