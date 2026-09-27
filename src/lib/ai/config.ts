@@ -52,8 +52,12 @@ export type AiConfig = {
   /** Запасной провайдер — если основной не ответил. */
   fallback: AiProviderId | null;
   limits: AiLimits;
-  /** Сколько ждать ответа одного провайдера, мс. */
+  /** Сколько ждать одну попытку ответа, мс. */
   timeoutMs: number;
+  /** Сколько всего ждать ответа со всеми повторами и запасным провайдером, мс. */
+  totalTimeoutMs: number;
+  /** Сколько раз повторять запрос при временном сбое (тайм-аут, 429, 5xx). */
+  maxRetries: number;
 };
 
 export function isProviderConfigured(id: AiProviderId): boolean {
@@ -93,10 +97,12 @@ export function getAiConfig(): AiConfig {
       userPerMinute: readInt("AI_USER_PER_MINUTE", 6, 1, 600),
       globalDaily: readInt("AI_GLOBAL_DAILY_LIMIT", 500, 0, 1_000_000),
       maxInputChars: readInt("AI_MAX_INPUT_CHARS", 500, 50, 4000),
-      maxOutputTokens: readInt("AI_MAX_OUTPUT_TOKENS", 400, 50, 2000),
+      maxOutputTokens: readInt("AI_MAX_OUTPUT_TOKENS", 800, 100, 4000),
       historyMessages: readInt("AI_HISTORY_MESSAGES", 12, 2, 50),
       threadMaxMessages: readInt("AI_THREAD_MAX_MESSAGES", 60, 10, 500),
     },
-    timeoutMs: readInt("AI_TIMEOUT_SECONDS", 25, 5, 60) * 1000,
+    timeoutMs: readInt("AI_TIMEOUT_SECONDS", 25, 5, 120) * 1000,
+    totalTimeoutMs: readInt("AI_TOTAL_TIMEOUT_SECONDS", 55, 10, 280) * 1000,
+    maxRetries: readInt("AI_MAX_RETRIES", 2, 0, 3),
   };
 }

@@ -65,9 +65,52 @@ function plainText(raw: string): string {
     .slice(0, 1500);
 }
 
+/**
+ * Значение строкового поля из JSON, даже если JSON обрезан посередине
+ * (у модели кончилась длина ответа). Незакрытая строка берётся до конца текста.
+ */
+export function salvageJsonString(raw: string, field: string): string | undefined {
+  const match = raw.match(new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)`));
+  if (!match) return undefined;
+  let body = match[1];
+  // Обрезанная escape-последовательность в самом конце
+  body = body.replace(/\\u[0-9a-fA-F]{0,3}$/, "").replace(/\\$/, "");
+  try {
+    return readString(JSON.parse(`"${body}"`), 1500);
+  } catch {
+    return readString(body.replace(/\\n/g, "\n").replace(/\\"/g, '"'), 1500);
+  }
+}
+
+/** Похож ли текст на JSON (целый или обрезанный), а не на обычную реплику. */
+function looksLikeJson(text: string): boolean {
+  return /^\s*(```(?:json)?\s*)?[{[]/i.test(text) || /"reply"\s*:/.test(text);
+}
+
+/**
+ * Можно ли показать ответ ученику: JSON с репликой, обрезанный JSON с репликой
+ * или обычный текст. Непонятный обрывок JSON — нельзя (такой ответ повторяем).
+ */
+export function isUsableTutorReply(raw: string): boolean {
+  const json = extractJsonObject(raw);
+  if (json) return Boolean(readString(json.reply) ?? readString(json.message));
+  if (salvageJsonString(raw, "reply")) return true;
+  return !looksLikeJson(raw) && plainText(raw).length > 0;
+}
+
 export function parseTutorReply(raw: string): TutorReply {
   const json = extractJsonObject(raw);
   if (!json) {
+    // JSON обрезан: достаём хотя бы реплику и перевод
+    const salvaged = salvageJsonString(raw, "reply");
+    if (salvaged) {
+      return {
+        reply: salvaged,
+        translation: salvageJsonString(raw, "translation") ?? null,
+        correction: null,
+        words: [],
+      };
+    }
     return { reply: plainText(raw), translation: null, correction: null, words: [] };
   }
   const reply = readString(json.reply, 1500) ?? readString(json.message, 1500) ?? plainText(raw);

@@ -5,7 +5,14 @@ import { cache } from "react";
 import { and, asc, count, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { chatMessages, chatThreads, userWords, type Correction, type SuggestedWord } from "@/db/schema";
+import {
+  chatMessages,
+  chatThreads,
+  userWords,
+  type ChatAction,
+  type Correction,
+  type SuggestedWord,
+} from "@/db/schema";
 import { todayInTimezone } from "@/lib/dates";
 import { getProfile } from "@/lib/profile";
 
@@ -16,6 +23,8 @@ export type ChatMessageView = {
   translation: string | null;
   correction: Correction | null;
   words: SuggestedWord[];
+  /** Предложенное действие (переход к IELTS) — показывается карточкой с кнопками. */
+  action: ChatAction | null;
   createdAt: string;
 };
 
@@ -27,6 +36,7 @@ export function toMessageView(row: typeof chatMessages.$inferSelect): ChatMessag
     translation: row.translation,
     correction: row.correction ?? null,
     words: row.words ?? [],
+    action: row.action ?? null,
     createdAt: row.createdAt.toISOString(),
   };
 }

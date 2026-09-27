@@ -7,12 +7,16 @@ import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Вход" };
 
-export default function SignInPage() {
+type PageProps = { searchParams: Promise<{ next?: string | string[] }> };
+
+export default async function SignInPage({ searchParams }: PageProps) {
+  const { next } = await searchParams;
+  const redirectTo = typeof next === "string" ? next : undefined;
   return (
     <>
       <PageHeader title="С возвращением!" description="Войди, чтобы продолжить обучение." />
       <Card>
-        <SignInForm />
+        <SignInForm redirectTo={redirectTo} />
       </Card>
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Нет аккаунта?{" "}

@@ -59,6 +59,16 @@ export type SessionSummary = {
 /** Слово, которое Отти предложил добавить в словарь. */
 export type SuggestedWord = { en: string; ru: string };
 
+/**
+ * Действие, которое Отти предлагает в чате и которое ученик должен подтвердить.
+ * goal_switch — перейти к подготовке к экзамену. Цель меняется только после «Да».
+ */
+export type ChatAction = {
+  type: "goal_switch";
+  target: "ielts";
+  status: "pending" | "accepted" | "declined";
+};
+
 /* Общие поля «когда создано» и «когда изменено» */
 const createdAt = () =>
   timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
@@ -341,9 +351,19 @@ export const chatMessages = pgTable(
     words: jsonb("words").$type<SuggestedWord[]>(),
     tokensIn: integer("tokens_in").notNull().default(0),
     tokensOut: integer("tokens_out").notNull().default(0),
+    /**
+     * Ключ отправки из браузера. Повтор того же сообщения (после сбоя связи) приходит
+     * с тем же ключом — сервер вернёт уже сохранённый ответ, без дубля и без второго XP.
+     */
+    clientRequestId: text("client_request_id"),
+    /** Предложенное действие (например, перейти к IELTS) и ответ ученика на него. */
+    action: jsonb("action").$type<ChatAction>(),
     createdAt: createdAt(),
   },
-  (table) => [index("chat_messages_thread_created_idx").on(table.threadId, table.createdAt)],
+  (table) => [
+    index("chat_messages_thread_created_idx").on(table.threadId, table.createdAt),
+    uniqueIndex("chat_messages_thread_request_idx").on(table.threadId, table.role, table.clientRequestId),
+  ],
 );
 
 /**

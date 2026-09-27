@@ -163,6 +163,18 @@
   --animate-rise: otti-rise 0.25s ease-out;
   --animate-confetti: otti-confetti 2.8s ease-in forwards;
   --animate-typing: otti-typing 1.2s ease-in-out infinite;
+  --animate-message-in: otti-message-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes otti-message-in {
+    from {
+      transform: translateY(8px) scale(0.98);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
 
   @keyframes otti-typing {
     0%,

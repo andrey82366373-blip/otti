@@ -44,7 +44,7 @@ export async function getUserAiDailyLimit(userId: string, limits: AiLimits): Pro
 export async function reserveAiRequest(
   userId: string,
   limits: AiLimits,
-): Promise<{ ok: true; day: string } | { ok: false; code: LimitCode }> {
+): Promise<{ ok: true; day: string } | { ok: false; code: LimitCode; retryAfterSec?: number }> {
   const day = aiDay();
   const newWindow = sql`${aiUsage.windowStart} is null or ${aiUsage.windowStart} < now() - interval '1 minute'`;
 
@@ -87,16 +87,27 @@ export async function reserveAiRequest(
     });
     return { ok: true, day };
   } catch (error) {
-    if (error instanceof LimitReached) return { ok: false, code: error.code };
-    throw error;
+    if (!(error instanceof LimitReached)) throw error;
+    if (error.code !== "limit_user_minute") return { ok: false, code: error.code };
+    // Сколько секунд осталось до конца минутного окна — браузер отправит сообщение сам
+    const [row] = await getDb()
+      .select({
+        seconds: sql<number>`greatest(1, ceil(extract(epoch from (${aiUsage.windowStart} + interval '1 minute' - now()))))::int`,
+      })
+      .from(aiUsage)
+      .where(and(eq(aiUsage.userId, userId), eq(aiUsage.day, day)));
+    return { ok: false, code: error.code, retryAfterSec: Math.min(60, Number(row?.seconds ?? 60)) };
   }
 }
 
-/** Возвращает бронь, если ИИ так и не ответил: неудачный запрос не тратит дневной лимит. */
+/** Возвращает бронь, если ИИ так и не ответил: неудачный запрос не тратит ни дневной, ни минутный лимит. */
 export async function releaseAiRequest(userId: string, day: string) {
   await getDb()
     .update(aiUsage)
-    .set({ requests: sql`greatest(${aiUsage.requests} - 1, 0)` })
+    .set({
+      requests: sql`greatest(${aiUsage.requests} - 1, 0)`,
+      windowRequests: sql`greatest(${aiUsage.windowRequests} - 1, 0)`,
+    })
     .where(and(eq(aiUsage.userId, userId), eq(aiUsage.day, day)));
 }
 

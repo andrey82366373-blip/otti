@@ -6,11 +6,13 @@
 import "server-only";
 
 import { getAiConfig, isProviderConfigured } from "@/lib/ai/config";
+import { snippet } from "@/lib/ai/http";
 import { aiDay, getAiUsageToday, recordAiTokens, releaseAiRequest, reserveAiRequest } from "@/lib/ai/limits";
 import { createGigaChatProvider } from "@/lib/ai/providers/gigachat";
 import { createMockProvider } from "@/lib/ai/providers/mock";
 import { createOpenRouterProvider } from "@/lib/ai/providers/openrouter";
 import { createYandexProvider } from "@/lib/ai/providers/yandex";
+import { backoffDelay, newRequestId, wait } from "@/lib/ai/retry";
 import {
   AI_PROVIDER_TITLES,
   AiProviderError,
@@ -29,7 +31,16 @@ export type AiErrorCode =
   | "limit_user_minute"
   | "limit_user_day"
   | "limit_global"
-  | "provider_failed";
+  /** Провайдер отвечает «слишком много запросов» (429) даже после повторов. */
+  | "provider_busy"
+  /** Тайм-аут, 5xx или обрыв связи — даже после повторов. */
+  | "provider_unavailable"
+  /** Закончились токены или деньги у провайдера (402). */
+  | "provider_quota"
+  /** Ключ не подошёл, неверная модель или сертификат — нужна правка настроек. */
+  | "provider_config"
+  /** ИИ ответил, но не в ожидаемом формате. */
+  | "bad_format";
 
 /** Ошибка для показа ученику: понятный текст и, для владельца сайта, технические подробности. */
 export class AiError extends Error {
@@ -37,9 +48,25 @@ export class AiError extends Error {
     readonly code: AiErrorCode,
     readonly userMessage: string,
     readonly details?: string,
+    readonly extra: { requestId?: string; retryAfterSec?: number } = {},
   ) {
     super(userMessage);
     this.name = "AiError";
+  }
+
+  /** Код запроса для ученика и журнала. */
+  get requestId(): string | undefined {
+    return this.extra.requestId;
+  }
+
+  /** Имеет ли смысл повторить тот же запрос чуть позже. */
+  get retryable(): boolean {
+    return (
+      this.code === "provider_busy" ||
+      this.code === "provider_unavailable" ||
+      this.code === "bad_format" ||
+      this.code === "limit_user_minute"
+    );
   }
 }
 
@@ -117,16 +144,6 @@ function semaphoreFor(id: AiProviderId): Semaphore {
   return semaphore;
 }
 
-function sleep(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener("abort", () => {
-      clearTimeout(timer);
-      resolve();
-    });
-  });
-}
-
 async function callProvider(
   id: AiProviderId,
   request: CompletionRequest,
@@ -139,16 +156,8 @@ async function callProvider(
   try {
     const release = await semaphoreFor(id).acquire(controller.signal, id);
     try {
-      try {
-        return await provider.complete(request, controller.signal);
-      } catch (error) {
-        // «Слишком много запросов» — ждём полторы секунды и пробуем ещё раз
-        if (error instanceof AiProviderError && error.kind === "busy" && !controller.signal.aborted) {
-          await sleep(1500, controller.signal);
-          return await provider.complete(request, controller.signal);
-        }
-        throw error;
-      }
+      // Повторы при временных сбоях — в askAi: там общий бюджет времени и журнал попыток
+      return await provider.complete(request, controller.signal);
     } finally {
       release();
     }
@@ -183,14 +192,58 @@ export function describeProviderError(error: AiProviderError): string {
 }
 
 const LIMIT_MESSAGES = {
-  limit_user_minute: "Слишком много сообщений подряд. Подожди минуту и попробуй снова.",
+  limit_user_minute: "Слишком много сообщений подряд. Отти ответит через минуту — сообщение отправится само.",
   limit_user_day: "На сегодня лимит сообщений исчерпан. Завтра Отти снова на связи!",
   limit_global: "Отти сегодня много болтал и устал. Попробуй завтра — уроки и словарь работают как обычно.",
 } as const;
 
+/** Итоговая ошибка после всех попыток: по самому «серьёзному» сбою. */
+function finalError(failures: AiProviderError[], requestId: string): AiError {
+  const details = failures.map(describeProviderError).join("\n");
+  const extra = { requestId };
+  const has = (kind: AiProviderError["kind"]) => failures.some((failure) => failure.kind === kind);
+  const retryableOnly = failures.length > 0 && failures.every((failure) => failure.retryable);
+
+  if (retryableOnly) {
+    if (has("busy")) {
+      return new AiError(
+        "provider_busy",
+        "Сервис ИИ сейчас перегружен запросами. Отти попробовал несколько раз — подожди полминуты и повтори.",
+        details,
+        extra,
+      );
+    }
+    if (failures.every((failure) => failure.kind === "bad_response")) {
+      return new AiError("bad_format", "Отти ответил неразборчиво. Попробуй отправить ещё раз.", details, extra);
+    }
+    return new AiError(
+      "provider_unavailable",
+      "Сервер ИИ временно недоступен. Отти попробовал несколько раз — повтори чуть позже.",
+      details,
+      extra,
+    );
+  }
+  if (has("quota")) {
+    return new AiError(
+      "provider_quota",
+      "У ИИ-репетитора закончились запросы у провайдера. Уроки, словарь и ошибки работают как обычно.",
+      details,
+      extra,
+    );
+  }
+  return new AiError(
+    "provider_config",
+    "Отти временно недоступен: на сервере ошибка настроек ИИ. Уроки и словарь работают как обычно.",
+    details,
+    extra,
+  );
+}
+
 /**
  * Отправляет сообщения ИИ и возвращает ответ.
  * userText — текст ученика: проверяется его длина.
+ * validate — проверка формата ответа: если вернула false, ответ считается сбоем и запрос повторяется.
+ * requestId — код запроса для журнала; если не передан, создаётся новый.
  */
 export async function askAi(input: {
   userId: string;
@@ -199,14 +252,18 @@ export async function askAi(input: {
   userText?: string;
   maxTokens?: number;
   temperature?: number;
+  requestId?: string;
+  validate?: (text: string) => boolean;
 }): Promise<AskAiResult> {
   const config = getAiConfig();
+  const requestId = input.requestId ?? newRequestId();
 
   if (!config.enabled) {
     throw new AiError(
       "disabled",
       "ИИ-репетитор сейчас выключен. Уроки, словарь и ошибки работают как обычно.",
       "Выключен настройкой AI_ENABLED=false.",
+      { requestId },
     );
   }
   if (!config.provider || !isProviderConfigured(config.provider)) {
@@ -216,18 +273,25 @@ export async function askAi(input: {
       config.provider
         ? `Для ${AI_PROVIDER_TITLES[config.provider]} не задан ключ.`
         : "Не задан ни один провайдер ИИ.",
+      { requestId },
     );
   }
   if (input.userText !== undefined && input.userText.length > config.limits.maxInputChars) {
     throw new AiError(
       "input_too_long",
       `Сообщение слишком длинное — не больше ${config.limits.maxInputChars} символов.`,
+      undefined,
+      { requestId },
     );
   }
 
   const reservation = await reserveAiRequest(input.userId, config.limits);
   if (!reservation.ok) {
-    throw new AiError(reservation.code, LIMIT_MESSAGES[reservation.code]);
+    console.warn(`[ai] req=${requestId} ${input.purpose}: лимит ${reservation.code}`);
+    throw new AiError(reservation.code, LIMIT_MESSAGES[reservation.code], undefined, {
+      requestId,
+      retryAfterSec: reservation.retryAfterSec,
+    });
   }
 
   const request: CompletionRequest = {
@@ -242,45 +306,70 @@ export async function askAi(input: {
   );
   const failures: AiProviderError[] = [];
   const started = performance.now();
+  const deadline = Date.now() + config.totalTimeoutMs;
+  const attempts = 1 + config.maxRetries;
+  // Меньше этого времени на попытку не даём: всё равно не успеет
+  const MIN_ATTEMPT_MS = 3000;
 
-  for (const id of chain) {
-    try {
-      const result = await callProvider(id, request, config.timeoutMs);
-      const text = cleanText(result.text);
-      if (!text) {
-        throw new AiProviderError(id, "bad_response", "пустой ответ");
+  providers: for (const id of chain) {
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      const remaining = deadline - Date.now();
+      if (remaining < MIN_ATTEMPT_MS) break providers;
+      const attemptStarted = performance.now();
+      try {
+        const result = await callProvider(id, request, Math.min(config.timeoutMs, remaining));
+        const text = cleanText(result.text);
+        if (!text) {
+          throw new AiProviderError(id, "bad_response", "пустой ответ", undefined, true);
+        }
+        if (input.validate && !input.validate(text)) {
+          throw new AiProviderError(id, "bad_response", `ответ не в том формате: ${snippet(text)}`, undefined, true);
+        }
+        await recordAiTokens(input.userId, reservation.day, result.tokensIn + result.tokensOut).catch(
+          (error: unknown) => console.error(`[ai] req=${requestId} Не удалось записать расход токенов:`, error),
+        );
+        if (failures.length > 0) {
+          console.info(
+            `[ai] req=${requestId} ${input.purpose}: ответ получен с попытки ${attempt} (${AI_PROVIDER_TITLES[id]}) после ${failures.length} сбоев`,
+          );
+        }
+        return {
+          text,
+          provider: id,
+          model: result.model,
+          tokensIn: result.tokensIn,
+          tokensOut: result.tokensOut,
+          ms: Math.round(performance.now() - started),
+          usedFallback: id !== config.provider,
+        };
+      } catch (error) {
+        const providerError =
+          error instanceof AiProviderError
+            ? error
+            : new AiProviderError(id, "bad_response", error instanceof Error ? error.message : String(error));
+        failures.push(providerError);
+        // В журнал — код запроса, попытка, тип ошибки и ответ провайдера. Ключи сюда не попадают.
+        console.error(
+          `[ai] req=${requestId} ${input.purpose} попытка ${attempt}/${attempts} (${Math.round(performance.now() - attemptStarted)} мс): ${describeProviderError(providerError)}`,
+        );
+        // Ошибку ключа, оплаты или запроса повторять бессмысленно — сразу к запасному провайдеру
+        if (!providerError.retryable || attempt === attempts) continue providers;
+        const delay = backoffDelay(attempt);
+        if (Date.now() + delay + MIN_ATTEMPT_MS > deadline) continue providers;
+        await wait(delay);
       }
-      await recordAiTokens(input.userId, reservation.day, result.tokensIn + result.tokensOut).catch(
-        (error: unknown) => console.error("[ai] Не удалось записать расход токенов:", error),
-      );
-      return {
-        text,
-        provider: id,
-        model: result.model,
-        tokensIn: result.tokensIn,
-        tokensOut: result.tokensOut,
-        ms: Math.round(performance.now() - started),
-        usedFallback: id !== config.provider,
-      };
-    } catch (error) {
-      const providerError =
-        error instanceof AiProviderError
-          ? error
-          : new AiProviderError(id, "bad_response", error instanceof Error ? error.message : String(error));
-      // В журнал — только тип ошибки и ответ провайдера, без ключей
-      console.error(`[ai] ${describeProviderError(providerError)}`);
-      failures.push(providerError);
     }
   }
 
   await releaseAiRequest(input.userId, reservation.day).catch((error: unknown) =>
-    console.error("[ai] Не удалось вернуть бронь запроса:", error),
+    console.error(`[ai] req=${requestId} Не удалось вернуть бронь запроса:`, error),
   );
-  throw new AiError(
-    "provider_failed",
-    "Отти не смог ответить. Попробуй ещё раз чуть позже.",
-    failures.map(describeProviderError).join("\n"),
-  );
+  if (failures.length === 0) {
+    failures.push(new AiProviderError(config.provider, "timeout", "не хватило времени на попытку"));
+  }
+  const final = finalError(failures, requestId);
+  console.error(`[ai] req=${requestId} ${input.purpose}: не удалось получить ответ (${final.code})`);
+  throw final;
 }
 
 export type AiStatus = {

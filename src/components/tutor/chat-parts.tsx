@@ -1,13 +1,32 @@
 "use client";
 
-import { Check, CircleCheck, LoaderCircle, PencilLine, Plus } from "lucide-react";
+import {
+  Check,
+  CircleAlert,
+  CircleCheck,
+  GraduationCap,
+  LoaderCircle,
+  PencilLine,
+  Plus,
+  RotateCcw,
+  WifiOff,
+} from "lucide-react";
+import Link from "next/link";
 
 import { SpeakButton } from "@/components/course/speak-button";
 import { Otti } from "@/components/otti";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Correction, SessionSummary, SuggestedWord } from "@/db/schema";
 import type { ChatMessageView } from "@/lib/tutor/store";
 import { cn } from "@/lib/utils";
+
+/** Текст в основном по-русски (например, объяснение или предложение перейти к IELTS). */
+function isMostlyRussian(text: string): boolean {
+  const cyrillic = (text.match(/[а-яё]/gi) ?? []).length;
+  const latin = (text.match(/[a-z]/gi) ?? []).length;
+  return cyrillic > latin;
+}
 
 /* ───────────────────────────── Сообщение Отти ───────────────────────────── */
 
@@ -18,6 +37,7 @@ export function OttiMessage({
   dictionary,
   addingWord,
   onAddWord,
+  goalAction,
 }: {
   message: ChatMessageView;
   showTranslation: boolean;
@@ -25,13 +45,16 @@ export function OttiMessage({
   dictionary: Set<string>;
   addingWord: string | null;
   onAddWord: (word: SuggestedWord) => void;
+  /** Кнопки «перейти к IELTS» — если Отти предложил сменить цель. */
+  goalAction?: GoalActionProps;
 }) {
+  const russian = isMostlyRussian(message.content);
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="animate-message-in flex items-start gap-2.5">
       <Otti size={36} className="mt-0.5" />
       <div className="flex max-w-[85%] min-w-0 flex-col gap-1.5">
         <div className="rounded-2xl rounded-tl-sm border bg-card px-4 py-3 shadow-xs">
-          <p lang="en" className="break-words whitespace-pre-wrap">
+          <p lang={russian ? "ru" : "en"} className="break-words whitespace-pre-wrap">
             {message.content}
           </p>
           {message.translation && showTranslation && (
@@ -41,8 +64,10 @@ export function OttiMessage({
           )}
         </div>
 
+        {message.action && goalAction && <GoalSwitchCard action={message.action} {...goalAction} />}
+
         <div className="flex items-center gap-2">
-          <SpeakButton text={message.content} className="size-8" />
+          {!russian && <SpeakButton text={message.content} className="size-8" />}
           {message.translation && (
             <button
               type="button"
@@ -96,11 +121,61 @@ export function OttiMessage({
   );
 }
 
+/* ─────────────────────── Предложение перейти к IELTS ─────────────────────── */
+
+type GoalActionProps = {
+  busy: boolean;
+  onAnswer: (accept: boolean) => void;
+  /** Куда ведёт кнопка после согласия (раздел IELTS). */
+  href: string | null;
+};
+
+function GoalSwitchCard({
+  action,
+  busy,
+  onAnswer,
+  href,
+}: GoalActionProps & { action: NonNullable<ChatMessageView["action"]> }) {
+  if (action.status === "accepted") {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-success-soft px-3 py-2 text-sm font-bold text-success">
+        <CircleCheck className="size-4" aria-hidden />
+        Цель изменена: подготовка к IELTS.
+        {href && (
+          <Link href={href} className="text-primary underline underline-offset-2">
+            Открыть подготовку
+          </Link>
+        )}
+      </div>
+    );
+  }
+  if (action.status === "declined") {
+    return <p className="px-1 text-xs text-muted-foreground">Хорошо, цель осталась прежней. Продолжаем разговор!</p>;
+  }
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border-2 border-primary/30 bg-secondary/60 p-3">
+      <p className="flex items-center gap-1.5 text-sm font-extrabold">
+        <GraduationCap className="size-4 text-primary" aria-hidden />
+        Перейти в режим подготовки к IELTS?
+      </p>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Button type="button" size="sm" onClick={() => onAnswer(true)} disabled={busy}>
+          {busy && <LoaderCircle className="animate-spin" aria-hidden />}
+          Да, готовиться к IELTS
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => onAnswer(false)} disabled={busy}>
+          Нет, продолжим разговор
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ───────────────────────────── Сообщение ученика ───────────────────────────── */
 
 export function UserMessage({ message, pending }: { message: Pick<ChatMessageView, "content" | "correction">; pending?: boolean }) {
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="animate-message-in flex flex-col items-end gap-1.5">
       <div
         className={cn(
           "max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-primary-foreground",
@@ -151,6 +226,91 @@ export function CorrectionCard({ correction }: { correction: Correction }) {
           </div>
         )}
       </dl>
+    </div>
+  );
+}
+
+/* ─────────────────── Сообщение, которое ещё не доставлено ─────────────────── */
+
+export type OutboxStatus = "sending" | "waiting" | "failed";
+
+/**
+ * Сообщение ученика, которое отправляется, ждёт повтора или не отправилось.
+ * Текст не теряется: его можно отправить ещё раз или вернуть в поле ввода.
+ */
+export function OutboxMessage({
+  text,
+  status,
+  error,
+  requestId,
+  offline,
+  countdown,
+  canRetry,
+  loginHref,
+  onRetry,
+  onEdit,
+}: {
+  text: string;
+  status: OutboxStatus;
+  error: string | null;
+  requestId?: string;
+  offline: boolean;
+  countdown: number | null;
+  canRetry: boolean;
+  loginHref: string | null;
+  onRetry: () => void;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-end gap-1.5">
+      <div
+        className={cn(
+          "max-w-[85%] rounded-2xl rounded-tr-sm px-4 py-3",
+          status === "failed"
+            ? "border-2 border-dashed border-destructive/50 bg-card text-foreground"
+            : "bg-primary text-primary-foreground opacity-70",
+        )}
+      >
+        <p className="break-words whitespace-pre-wrap">{text}</p>
+      </div>
+      {status !== "sending" && (
+        <div
+          role={status === "failed" ? "alert" : "status"}
+          className="flex max-w-[92%] flex-col items-end gap-2 text-right text-sm"
+        >
+          <p className={cn("flex items-start gap-1.5 font-semibold", status === "failed" ? "text-destructive" : "text-muted-foreground")}>
+            {offline ? (
+              <WifiOff className="mt-0.5 size-4 shrink-0" aria-hidden />
+            ) : status === "waiting" ? (
+              <LoaderCircle className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden />
+            ) : (
+              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            )}
+            <span>
+              {error}
+              {countdown !== null && countdown > 0 && ` Отправлю через ${countdown} с.`}
+            </span>
+          </p>
+          {requestId && <p className="text-xs text-muted-foreground">Код ошибки: {requestId}</p>}
+          <div className="flex flex-wrap justify-end gap-2">
+            {loginHref && (
+              <Button asChild size="sm">
+                <Link href={loginHref}>Войти снова</Link>
+              </Button>
+            )}
+            {canRetry && (
+              <Button type="button" size="sm" variant={loginHref ? "outline" : "default"} onClick={onRetry}>
+                <RotateCcw aria-hidden />
+                Повторить отправку
+              </Button>
+            )}
+            <Button type="button" size="sm" variant="outline" onClick={onEdit}>
+              <PencilLine aria-hidden />
+              Изменить текст
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

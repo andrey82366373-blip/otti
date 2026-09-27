@@ -81,7 +81,8 @@ export async function completeOpenAiCompatible(input: {
 
   const content = json?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
-    throw new AiProviderError(provider, "bad_response", `ответ без текста: ${snippet(response.text)}`);
+    // Пустой ответ у посредников обычно случаен — такой запрос можно повторить
+    throw new AiProviderError(provider, "bad_response", `ответ без текста: ${snippet(response.text)}`, 200, true);
   }
 
   return {

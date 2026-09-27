@@ -82,7 +82,8 @@ export function postRequest(
         reject(new AiProviderError(provider, "timeout", "не дождались ответа"));
       } else if (error.code && CERT_ERRORS.has(error.code)) {
         reject(
-          new AiProviderError(provider, "network", `сертификат сервера не прошёл проверку (${error.code})`),
+          // Ошибка сертификата сама не пройдёт — повторять бессмысленно
+          new AiProviderError(provider, "network", `сертификат сервера не прошёл проверку (${error.code})`, undefined, false),
         );
       } else if (error.message === "RESPONSE_TOO_LARGE") {
         reject(new AiProviderError(provider, "bad_response", "слишком большой ответ"));
@@ -103,6 +104,7 @@ export function errorKindForStatus(status: number) {
   if (status === 401 || status === 403) return "auth" as const;
   if (status === 402) return "quota" as const;
   if (status === 429) return "busy" as const;
+  if (status === 408) return "timeout" as const;
   if (status >= 500) return "server" as const;
   return "request" as const;
 }

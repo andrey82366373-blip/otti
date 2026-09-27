@@ -57,6 +57,13 @@
       "when": 1790442644487,
       "tag": "0007_lesson_replay_xp",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790521351948,
+      "tag": "0008_chat_reliability",
+      "breakpoints": true
     }
   ]
 }

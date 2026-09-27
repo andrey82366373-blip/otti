@@ -58,14 +58,23 @@ export type ProviderErrorKind =
   | "timeout"
   | "bad_response";
 
+/** Временные сбои, после которых есть смысл повторить запрос. */
+const TRANSIENT_KINDS: ReadonlySet<ProviderErrorKind> = new Set(["busy", "server", "network", "timeout"]);
+
 export class AiProviderError extends Error {
+  /** Можно ли повторить запрос автоматически: да — при тайм-ауте, 429, 5xx и обрыве связи. */
+  readonly retryable: boolean;
+
   constructor(
     readonly provider: AiProviderId,
     readonly kind: ProviderErrorKind,
     readonly details: string,
     readonly status?: number,
+    /** Явно задать, временный ли сбой. По умолчанию — по типу ошибки. */
+    retryable?: boolean,
   ) {
     super(`${provider}: ${kind}${status ? ` (${status})` : ""} — ${details}`);
     this.name = "AiProviderError";
+    this.retryable = retryable ?? TRANSIENT_KINDS.has(kind);
   }
 }

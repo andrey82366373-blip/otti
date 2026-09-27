@@ -9,7 +9,13 @@ import { Button } from "@/components/ui/button";
 import { authClient, getAuthErrorMessage } from "@/lib/auth-client";
 import { signInSchema, validateForm, type FieldErrors } from "@/lib/validation/auth";
 
-export function SignInForm() {
+/** Куда вернуться после входа: только адрес внутри сайта (защита от перехода на чужой сайт). */
+export function safeRedirectPath(value: string | undefined | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/learn";
+  return value.slice(0, 200);
+}
+
+export function SignInForm({ redirectTo }: { redirectTo?: string }) {
   const router = useRouter();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -39,7 +45,7 @@ export function SignInForm() {
         setPending(false);
         return;
       }
-      router.replace("/learn");
+      router.replace(safeRedirectPath(redirectTo));
       router.refresh();
     } catch {
       setFormError("Нет связи с сервером. Проверь интернет и попробуй ещё раз.");
