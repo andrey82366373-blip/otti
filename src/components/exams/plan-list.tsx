@@ -28,7 +28,7 @@ export function PlanList({
               className={cn(
                 "flex items-center gap-3 rounded-xl border-2 p-3 transition-colors outline-none hover:border-primary/40 focus-visible:ring-[3px] focus-visible:ring-ring/50",
                 next ? "border-primary bg-secondary/60" : "border-border bg-card",
-                isDone && "opacity-75",
+                isDone && !next && "bg-muted/40",
               )}
             >
               <Icon className="size-5 shrink-0 text-primary" aria-hidden />

@@ -26,8 +26,9 @@ export const LOCAL_DB_DIR = ".data/pglite";
 export class DatabaseNotConfiguredError extends Error {
   constructor() {
     super(
-      "База данных не подключена: в настройках проекта Vercel нет переменной DATABASE_URL. " +
-        "Подключите базу Neon во вкладке Storage и сделайте Redeploy.",
+      "База данных не подключена: в настройках хостинга нет переменной DATABASE_URL. " +
+        "На Render добавьте её в разделе Environment (строка подключения из Neon) и сделайте Manual Deploy; " +
+        "на Vercel — подключите Neon во вкладке Storage и сделайте Redeploy.",
     );
     this.name = "DatabaseNotConfiguredError";
   }
@@ -50,7 +51,8 @@ function createDatabase(): Database {
     return drizzleNodePg(pool, { schema });
   }
 
-  if (process.env.VERCEL) {
+  // На хостинге папка с файлами временная — локальную базу там использовать нельзя
+  if (process.env.VERCEL || process.env.RENDER) {
     throw new DatabaseNotConfiguredError();
   }
 

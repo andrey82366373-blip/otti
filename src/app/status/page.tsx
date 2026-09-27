@@ -27,6 +27,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { getAiStatus, type AiStatus } from "@/lib/ai";
 import type { AiProviderId } from "@/lib/ai/types";
 import { isAdminEmail } from "@/lib/admin";
+import { deployedCommit, hostingName } from "@/lib/hosting";
 import { isAuthSecretConfigured } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -50,7 +51,8 @@ type DbCheck =
   | { ok: false; message: string };
 
 async function checkDatabase(): Promise<DbCheck> {
-  const onVercel = Boolean(process.env.VERCEL);
+  const host = hostingName();
+  const onVercel = host !== null;
   const started = performance.now();
 
   try {
@@ -73,8 +75,8 @@ async function checkDatabase(): Promise<DbCheck> {
     }
     const details =
       !onVercel && error instanceof Error ? ` Ошибка: ${error.message}.` : "";
-    const where = onVercel
-      ? "Подробности — в разделе Logs проекта на Vercel."
+    const where = host
+      ? `Подробности — в разделе Logs на ${host === "render" ? "Render" : "Vercel"}.`
       : "Подробности — в терминале, где запущен сайт.";
     return { ok: false, message: `Не удалось подключиться к базе данных.${details} ${where}` };
   }
@@ -90,10 +92,13 @@ const KEY_NAMES: Record<AiProviderId, string> = {
 };
 
 /** Строка «ИИ-репетитор»: только настройки и расход, без запроса к ИИ. */
-function describeAi(ai: AiStatus, onVercel: boolean): { state: RowState; value: string; hint: string } {
-  const where = onVercel
-    ? "в Settings → Environment Variables на Vercel и сделайте Redeploy"
-    : "в файл .env.local и перезапустите сайт";
+function describeAi(ai: AiStatus, host: "vercel" | "render" | null): { state: RowState; value: string; hint: string } {
+  const where =
+    host === "render"
+      ? "в раздел Environment сервиса на Render и сделайте Manual Deploy"
+      : host === "vercel"
+        ? "в Settings → Environment Variables на Vercel и сделайте Redeploy"
+        : "в файл .env.local и перезапустите сайт";
 
   if (!ai.enabled) {
     return {
@@ -182,12 +187,12 @@ export default async function StatusPage() {
   // Страница проверяется заново при каждом открытии
   await connection();
 
-  const onVercel = Boolean(process.env.VERCEL);
-  const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
+  const host = hostingName();
+  const commit = deployedCommit();
   const kind = getDatabaseKind();
   const db = await checkDatabase();
   const authConfigured = isAuthSecretConfigured();
-  const ai = describeAi(await getAiStatus(), onVercel);
+  const ai = describeAi(await getAiStatus(), host);
   const session = db.ok && authConfigured ? await getSession().catch(() => null) : null;
   // Подробности (адреса, модели, число учеников, расход ИИ) — только владельцу сайта
   const admin = isAdminEmail(session?.user.email);
@@ -199,8 +204,8 @@ export default async function StatusPage() {
     timeZone: "Europe/Moscow",
   }).format(new Date());
 
-  const siteHint = onVercel
-    ? `Опубликован на Vercel${commit ? `, версия ${commit}` : ""}`
+  const siteHint = host
+    ? `Опубликован на ${host === "render" ? "Render" : "Vercel"}${commit ? `, версия ${commit}` : ""}`
     : "Запущен на этом компьютере";
 
   const dbHint = db.ok
@@ -221,7 +226,11 @@ export default async function StatusPage() {
       tablesValue = `${db.foundCount} из ${total}`;
       tablesHint =
         `Не хватает: ${db.missing.join(", ")}. ` +
-        (onVercel ? "Сделайте Redeploy на Vercel." : "Перезапустите сайт командой npm run dev.");
+        (host === "render"
+          ? "Сделайте Manual Deploy на Render."
+          : host === "vercel"
+            ? "Сделайте Redeploy на Vercel."
+            : "Перезапустите сайт командой npm run dev.");
     }
   }
 
@@ -233,7 +242,9 @@ export default async function StatusPage() {
     authState = "fail";
     authValue = "Не настроены";
     authHint =
-      "Нет секретного ключа BETTER_AUTH_SECRET. Добавьте его в Settings → Environment Variables на Vercel и сделайте Redeploy.";
+      host === "render"
+        ? "Нет секретного ключа BETTER_AUTH_SECRET. Добавьте его в раздел Environment сервиса на Render и сделайте Manual Deploy."
+        : "Нет секретного ключа BETTER_AUTH_SECRET. Добавьте его в Settings → Environment Variables на Vercel и сделайте Redeploy.";
   } else if (!db.ok) {
     authState = "fail";
     authValue = "Не работают";

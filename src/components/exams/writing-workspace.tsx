@@ -206,9 +206,9 @@ export function WritingWorkspace({
               </Link>
             </Button>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-extrabold">
+              <h1 className="truncate text-base font-extrabold">
                 Writing Task {task.task}: {task.title}
-              </p>
+              </h1>
               <p className="text-xs text-muted-foreground">{task.kindTitle}</p>
             </div>
             <TimerDisplay elapsed={elapsed} limitSeconds={limitSeconds} />

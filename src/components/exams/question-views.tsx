@@ -38,9 +38,9 @@ function QuestionNumber({ number, state }: { number: number; state: "correct" | 
       className={cn(
         "flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-black tabular-nums",
         state === "correct"
-          ? "bg-success text-white"
+          ? "bg-success-soft text-success ring-2 ring-success/60"
           : state === "wrong"
-            ? "bg-destructive text-destructive-foreground"
+            ? "bg-destructive-soft text-destructive ring-2 ring-destructive/60"
             : "bg-muted text-foreground",
       )}
     >
@@ -183,9 +183,9 @@ export function QuestionGroupView({ group, startNumber, answers, onChange, revie
   return (
     <section className="flex flex-col gap-4 rounded-2xl border-2 bg-card p-4" aria-labelledby={`${group.id}-title`}>
       <header className="flex flex-col gap-1.5">
-        <h3 id={`${group.id}-title`} className="text-sm font-black tracking-wide text-primary uppercase">
+        <h2 id={`${group.id}-title`} className="text-sm font-black tracking-wide text-primary uppercase">
           Questions {first}–{last} · {QUESTION_KIND_TITLES[group.kind]}
-        </h3>
+        </h2>
         <p lang="en" className="text-sm font-semibold">
           {group.instructions}
         </p>

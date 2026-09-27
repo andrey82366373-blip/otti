@@ -98,7 +98,7 @@ export function DiagnosticFlow({
   }
 
   const progress = typeof step === "number" ? (
-    <div className="mx-auto w-full max-w-3xl px-4 pt-3">
+    <section aria-label="Ход диагностики" className="mx-auto w-full max-w-3xl px-4 pt-3">
       <Progress
         value={step + (stepDone ? 1 : 0)}
         max={STEPS.length}
@@ -108,11 +108,11 @@ export function DiagnosticFlow({
       <p className="mt-1 text-xs font-bold text-muted-foreground">
         Шаг {step + 1} из {STEPS.length}: {STEPS[step]}
       </p>
-    </div>
+    </section>
   ) : null;
 
   const nextBar = (label: string, onClick: () => void, skip?: () => void) => (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    <footer className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-end gap-2 px-4 py-3">
         {skip && (
           <Button type="button" variant="ghost" onClick={skip}>
@@ -125,7 +125,7 @@ export function DiagnosticFlow({
           <ArrowRight aria-hidden />
         </Button>
       </div>
-    </div>
+    </footer>
   );
 
   if (step === "intro") {

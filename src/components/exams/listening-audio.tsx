@@ -245,7 +245,12 @@ export function ListeningAudio({
       )}
 
       {transcriptVisible && (
-        <div className="flex max-h-80 flex-col gap-1.5 overflow-y-auto rounded-xl bg-muted/50 p-3 text-sm">
+        <div
+          tabIndex={0}
+          role="region"
+          aria-label="Текст записи"
+          className="flex max-h-80 flex-col gap-1.5 overflow-y-auto rounded-xl bg-muted/50 p-3 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
           {script.map((line, index) => (
             <p key={index} lang="en" className={cn(index === currentLine && "rounded bg-xp/20")}>
               <span className="font-extrabold">{line.speaker}:</span> {line.text}

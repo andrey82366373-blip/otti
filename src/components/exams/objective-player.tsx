@@ -279,9 +279,9 @@ export function ObjectivePlayer({
           </Button>
         )}
         <div className="min-w-0 flex-1">
-          <p lang="en" className="truncate font-extrabold">
+          <h1 lang="en" className="truncate text-base font-extrabold">
             {task.title}
-          </p>
+          </h1>
           <p className="text-xs text-muted-foreground">
             {phase === "review"
               ? "Разбор ответов"
@@ -299,6 +299,30 @@ export function ObjectivePlayer({
           </Button>
         )}
       </div>
+      {phase !== "review" && skill === "reading" && (
+        <div className="border-t px-4 py-2 lg:hidden">
+          <div role="tablist" aria-label="Текст или вопросы" className="mx-auto grid max-w-md grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+            {(["text", "questions"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={tab === value}
+                onClick={() => {
+                  setTab(value);
+                  window.scrollTo({ top: 0 });
+                }}
+                className={cn(
+                  "rounded-lg py-1.5 text-sm font-extrabold transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  tab === value ? "bg-card shadow-sm" : "text-muted-foreground",
+                )}
+              >
+                {value === "text" ? "Текст" : `Вопросы · ${answered}/${allIds.length}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 
@@ -367,7 +391,7 @@ export function ObjectivePlayer({
       {header}
 
       {phase === "review" && result && (
-        <div className="mx-auto w-full max-w-6xl px-4 pt-5">
+        <section aria-label="Итог задания" className="mx-auto w-full max-w-6xl px-4 pt-5">
           <ResultSummary
             skill={skill}
             result={result}
@@ -382,49 +406,26 @@ export function ObjectivePlayer({
             retrying={Boolean(retry)}
             onStopRetry={() => setRetry(null)}
           />
-        </div>
-      )}
-
-      {phase !== "review" && skill === "reading" && (
-        <div className="sticky top-[57px] z-20 border-b bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
-          <div role="tablist" aria-label="Текст или вопросы" className="mx-auto grid max-w-md grid-cols-2 gap-1 rounded-xl bg-muted p-1">
-            {(["text", "questions"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={tab === value}
-                onClick={() => {
-                  setTab(value);
-                  window.scrollTo({ top: 0 });
-                }}
-                className={cn(
-                  "rounded-lg py-1.5 text-sm font-extrabold transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                  tab === value ? "bg-card shadow-sm" : "text-muted-foreground",
-                )}
-              >
-                {value === "text" ? "Текст" : `Вопросы · ${answered}/${allIds.length}`}
-              </button>
-            ))}
-          </div>
-        </div>
+        </section>
       )}
 
       <main
         className={cn(
-          "mx-auto grid w-full max-w-6xl gap-5 px-4 pt-5",
+          "mx-auto grid w-full max-w-6xl grid-cols-1 gap-5 px-4 pt-5",
           skill === "reading" ? "lg:grid-cols-2 lg:items-start" : "max-w-3xl",
         )}
       >
         <div
+          {...(skill === "reading" ? { tabIndex: 0, role: "region", "aria-label": "Текст задания" } : {})}
           className={cn(
+            "min-w-0 rounded-2xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
             skill === "reading" && "lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto",
             skill === "reading" && phase !== "review" && tab === "questions" && "hidden lg:block",
           )}
         >
           {material}
         </div>
-        <div className={cn(skill === "reading" && phase !== "review" && tab === "text" && "hidden lg:block")}>
+        <div className={cn("min-w-0", skill === "reading" && phase !== "review" && tab === "text" && "hidden lg:block")}>
           {skill === "listening" && phase === "doing" && mode !== "practice" && audioStatus === "idle" && (
             <InfoNote className="mb-3">Прочитай вопросы, пока запись не началась, — на экзамене на это даётся время.</InfoNote>
           )}

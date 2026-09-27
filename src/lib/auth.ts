@@ -11,6 +11,7 @@ import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 
 import { getDb } from "@/db";
+import { isHosted } from "@/lib/hosting";
 import * as schema from "@/db/schema";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -30,7 +31,7 @@ function assertSafeProfile(data: { name?: unknown; image?: unknown }) {
 
 /**
  * Ключ только для запуска на своём компьютере.
- * В интернете (на Vercel) обязательно задаётся свой ключ BETTER_AUTH_SECRET.
+ * В интернете (на Render или Vercel) обязательно задаётся свой ключ BETTER_AUTH_SECRET.
  */
 const LOCAL_DEV_SECRET = "otti-local-development-secret-do-not-use-in-production";
 
@@ -40,8 +41,9 @@ function getAllowedHosts(): string[] {
     process.env.VERCEL_PROJECT_PRODUCTION_URL, // основной адрес: otti-….vercel.app
     process.env.VERCEL_BRANCH_URL,
     process.env.VERCEL_URL, // адрес конкретной публикации
+    process.env.RENDER_EXTERNAL_HOSTNAME, // адрес на Render: otti-….onrender.com
   ];
-  if (!process.env.VERCEL) {
+  if (!isHosted()) {
     hosts.push("localhost:*", "127.0.0.1:*"); // запуск на своём компьютере
   }
   return hosts.filter((host): host is string => Boolean(host));

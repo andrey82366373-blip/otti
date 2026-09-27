@@ -246,9 +246,9 @@ export function SpeakingSession({
           </Link>
         </Button>
         <div className="min-w-0 flex-1">
-          <p lang="en" className="truncate font-extrabold">
+          <h1 lang="en" className="truncate text-base font-extrabold">
             Speaking Part {task.part}: {task.topic}
-          </p>
+          </h1>
           <p className="text-xs text-muted-foreground">
             {phase === "review" ? "Разбор ответов" : `Проверок сегодня: ${remaining} из ${limit}`}
           </p>

@@ -50,6 +50,12 @@ async function migrateLocal() {
 try {
   if (url) {
     await migrateNeon(url);
+  } else if (process.env.RENDER) {
+    console.error(
+      "✗ На Render не задана переменная DATABASE_URL. Откройте сервис → Environment, добавьте строку " +
+        "подключения из Neon (и DATABASE_URL_UNPOOLED), сохраните и нажмите Manual Deploy.",
+    );
+    process.exit(1);
   } else if (process.env.VERCEL) {
     console.warn(
       "⚠ База данных ещё не подключена к проекту Vercel (нет DATABASE_URL). " +

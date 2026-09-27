@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
-const onVercel = Boolean(process.env.VERCEL);
+/** Сайт на хостинге с HTTPS (Render или Vercel). */
+const onHttpsHost = Boolean(process.env.VERCEL || process.env.RENDER);
 
 /**
  * Политика безопасности содержимого (CSP): браузер загружает скрипты, стили, картинки
@@ -21,7 +22,7 @@ const contentSecurityPolicy = [
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  ...(onVercel ? ["upgrade-insecure-requests"] : []),
+  ...(onHttpsHost ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 const securityHeaders = [
@@ -35,8 +36,8 @@ const securityHeaders = [
   // Микрофон — только для голосового ввода на этом сайте; камера и геолокация не нужны
   { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-  // Только HTTPS (на Vercel сайт и так работает по HTTPS)
-  ...(onVercel ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }] : []),
+  // Только HTTPS (на Render и Vercel сайт и так работает по HTTPS)
+  ...(onHttpsHost ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }] : []),
 ];
 
 const nextConfig: NextConfig = {

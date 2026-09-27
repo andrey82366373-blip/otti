@@ -1,0 +1,35 @@
+# Настройки для публикации на Render (render.com) через Blueprint.
+# Render прочитает этот файл сам: New → Blueprint → выбрать репозиторий на GitHub.
+# Секреты (строки подключения к базе и ключи ИИ) вводятся в интерфейсе Render — в этом файле их нет.
+services:
+  - type: web
+    name: otti
+    runtime: node
+    plan: free
+    region: frankfurt
+    # Сначала обновляем таблицы в базе Neon, затем собираем сайт
+    buildCommand: npm ci --include=dev && npm run db:migrate && npm run build
+    startCommand: npm run start
+    healthCheckPath: /robots.txt
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # Строки подключения из Neon (Dashboard → Connect): с пулом и без пула
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      # Секрет для входа — Render сгенерирует случайный сам
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      # ИИ-репетитор: mock — тестовые ответы без ключей. Поменяйте на gigachat или openrouter, когда добавите ключ.
+      - key: AI_PROVIDER
+        value: mock
+      - key: AI_ENABLED
+        value: "true"
+      # Ваш e-mail — только вы увидите подробности на странице /status
+      - key: ADMIN_EMAILS
+        sync: false
