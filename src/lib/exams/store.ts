@@ -137,3 +137,9 @@ export function bestByTask(attempts: ExamAttempt[]) {
   }
   return map;
 }
+
+/** Идущая проверка считается «живой» 3 минуты; готовая — всегда. */
+export function isCheckUsable(check: ExamCheck | null): check is ExamCheck {
+  if (!check) return false;
+  return check.status === "done" || Date.now() - check.createdAt.getTime() < 3 * 60 * 1000;
+}
