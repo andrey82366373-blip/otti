@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 
 import { SpeakButton } from "@/components/course/speak-button";
+import { PlayOnMount } from "@/components/motion/play-on-mount";
 import { Otti } from "@/components/otti";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -319,8 +320,8 @@ export function OutboxMessage({
 
 export function TypingIndicator({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2.5" role="status">
-      <Otti size={36} />
+    <div className="animate-message-in flex items-center gap-2.5" role="status">
+      <Otti size={36} className="animate-bob" />
       <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm border bg-card px-4 py-3.5">
         {[0, 1, 2].map((dot) => (
           <span
@@ -330,7 +331,7 @@ export function TypingIndicator({ label }: { label: string }) {
             aria-hidden
           />
         ))}
-        <span className="sr-only">{label}</span>
+        <span className="ml-1.5 text-xs font-semibold text-muted-foreground">{label}</span>
       </div>
     </div>
   );
@@ -341,9 +342,10 @@ export function TypingIndicator({ label }: { label: string }) {
 export function SummaryCard({ summary, xpEarned }: { summary: SessionSummary; xpEarned: number }) {
   const { stats } = summary;
   return (
-    <Card className="animate-pop gap-4 border-primary/30 bg-linear-to-br from-secondary to-card">
+    <Card className="animate-card-in gap-4 border-primary/30 bg-linear-to-br from-secondary to-card">
+      {xpEarned > 0 && <PlayOnMount sound="complete" />}
       <div className="flex items-center gap-3">
-        <Otti size={56} mood="wink" />
+        <Otti size={56} mood="joy" className="animate-hop" />
         <div className="min-w-0">
           <h2 className="text-xl font-black">Итоги занятия</h2>
           <p className="text-sm text-muted-foreground">

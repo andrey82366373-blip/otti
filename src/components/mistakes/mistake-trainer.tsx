@@ -8,6 +8,8 @@ import { checkAnswer, type AiNote } from "@/components/lesson/check-answer";
 import { Confetti } from "@/components/lesson/confetti";
 import { ExerciseView, canSkip } from "@/components/lesson/exercise-view";
 import { FeedbackPanel } from "@/components/lesson/feedback-panel";
+import { SoundToggleButton } from "@/components/motion/feedback-settings";
+import { PlayOnMount } from "@/components/motion/play-on-mount";
 import { Otti } from "@/components/otti";
 import { NewAchievements } from "@/components/progress/new-achievements";
 import { Badge } from "@/components/ui/badge";
@@ -177,8 +179,9 @@ export function MistakeTrainer(props: MistakeTrainerProps) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-10 pb-16">
         {allFixed && <Confetti />}
-        <div className="animate-pop flex flex-col items-center gap-2 text-center">
-          <Otti size={104} mood={allFixed ? "wink" : "happy"} />
+        <PlayOnMount sound={achievements.length > 0 ? "achievement" : "complete"} />
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Otti size={104} mood={allFixed ? "joy" : "happy"} className="animate-celebrate" />
           <h1 className="text-3xl font-black tracking-tight">Тренировка окончена</h1>
           {topicTitle && <p className="font-bold">Тема: {topicTitle}</p>}
           <p className="text-muted-foreground">
@@ -198,7 +201,7 @@ export function MistakeTrainer(props: MistakeTrainerProps) {
 
         {goalReached && (
           <Card className="flex-row items-center gap-3">
-            <Flame className="size-7 shrink-0 fill-streak/30 text-streak" aria-hidden />
+            <Flame className="animate-flame size-7 shrink-0 fill-streak/30 text-streak" aria-hidden />
             <p className="font-extrabold">Цель дня выполнена!</p>
           </Card>
         )}
@@ -267,9 +270,10 @@ export function MistakeTrainer(props: MistakeTrainerProps) {
           className="h-4 flex-1"
           barClassName="bg-streak"
         />
-        <span className="w-12 text-right text-sm font-bold text-muted-foreground tabular-nums">
+        <span className="w-10 text-right text-sm font-bold text-muted-foreground tabular-nums">
           {firstPassDone}/{items.length}
         </span>
+        <SoundToggleButton />
       </header>
 
       {/* Задание */}
@@ -295,7 +299,11 @@ export function MistakeTrainer(props: MistakeTrainerProps) {
           </h2>
         </div>
 
-        <div data-exercise-id={exercise.id} className={cn(result && !result.correct && "animate-shake")}>
+        <div
+          key={exercise.id}
+          data-exercise-id={exercise.id}
+          className={cn("-mx-2 rounded-3xl px-2 py-2", result ? (result.correct ? "animate-correct" : "animate-sway") : "animate-card-in")}
+        >
           <ExerciseView
             key={current.key}
             exercise={exercise}

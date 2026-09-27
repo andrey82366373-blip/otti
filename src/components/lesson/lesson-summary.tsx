@@ -1,33 +1,49 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { BookA, Flame, Target, Zap } from "lucide-react";
 
 import { SpeakButton } from "@/components/course/speak-button";
 import { Confetti } from "@/components/lesson/confetti";
+import { AnimatedNumber } from "@/components/motion/animated-number";
+import { useFeedbackPrefs } from "@/components/motion/feedback-prefs";
 import { NewAchievements } from "@/components/progress/new-achievements";
 import { Otti } from "@/components/otti";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Lesson } from "@/content/course/types";
 import type { LessonSummary as Summary } from "@/lib/actions/lessons";
-import { DAYS, withPlural } from "@/lib/plural";
+import { DAYS, plural, withPlural } from "@/lib/plural";
+import { cn } from "@/lib/utils";
 
 function Stat({
   icon: Icon,
   value,
+  prefix = "",
+  suffix = "",
   label,
   colorClass,
+  delay,
 }: {
   icon: typeof Zap;
-  value: string;
+  value: number;
+  prefix?: string;
+  suffix?: string;
   label: string;
   colorClass: string;
+  /** Задержка появления, мс — карточки выезжают по очереди. */
+  delay: number;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl border-2 bg-card px-3 py-4 text-center">
+    <div
+      className="animate-card-in flex flex-col items-center gap-1 rounded-2xl border-2 bg-card px-3 py-4 text-center"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <Icon className={`size-6 ${colorClass}`} aria-hidden />
-      <p className="text-2xl font-black tabular-nums">{value}</p>
+      <p className="text-2xl font-black">
+        <AnimatedNumber value={value} from={0} delay={delay + 150} prefix={prefix} suffix={suffix} />
+      </p>
       <p className="text-xs font-bold text-muted-foreground">{label}</p>
     </div>
   );
@@ -36,12 +52,32 @@ function Stat({
 /** Итог урока: опыт, точность, новые слова и что дальше. */
 export function LessonSummary({ lesson, summary }: { lesson: Lesson; summary: Summary }) {
   const perfect = summary.firstTryCorrect === summary.total;
+  const { play, reduceMotion } = useFeedbackPrefs();
+  const streakGrew = summary.goalReachedNow && summary.streak > 0;
+
+  // Праздничный перезвон, затем — достижение (если есть)
+  useEffect(() => {
+    play("complete");
+    const timers: number[] = [];
+    if (summary.newAchievements.length > 0) timers.push(window.setTimeout(() => play("achievement"), 1100));
+    else if (streakGrew) timers.push(window.setTimeout(() => play("streak"), 1000));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- звучит один раз при показе итогов
+  }, []);
 
   return (
     <div className="flex flex-col gap-5">
-      <Confetti />
-      <div className="animate-pop flex flex-col items-center gap-2 text-center">
-        <Otti size={112} mood={perfect ? "wink" : "happy"} />
+      {!reduceMotion && <Confetti />}
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="relative flex items-center justify-center">
+          <span aria-hidden className="animate-ripple absolute size-28 rounded-full border-4 border-river/50" />
+          <span
+            aria-hidden
+            className="animate-ripple absolute size-28 rounded-full border-4 border-primary/40"
+            style={{ animationDelay: "0.35s" }}
+          />
+          <Otti size={112} mood={perfect ? "joy" : "wink"} className="animate-celebrate relative" />
+        </div>
         <h1 className="text-3xl font-black tracking-tight">
           {summary.isFirstCompletion ? "Урок пройден!" : "Урок повторён!"}
         </h1>
@@ -53,27 +89,40 @@ export function LessonSummary({ lesson, summary }: { lesson: Lesson; summary: Su
       </div>
 
       <div className="grid grid-cols-3 gap-2.5">
-        <Stat icon={Zap} value={`+${summary.xpEarned}`} label="XP" colorClass="text-xp" />
-        <Stat icon={Target} value={`${summary.scorePercent}%`} label="точность" colorClass="text-primary" />
+        <Stat icon={Zap} value={summary.xpEarned} prefix="+" label="XP" colorClass="text-xp" delay={250} />
         <Stat
-          icon={BookA}
-          value={String(lesson.words.length)}
-          label="новых слов"
-          colorClass="text-river"
+          icon={Target}
+          value={summary.scorePercent}
+          suffix="%"
+          label="точность"
+          colorClass="text-primary"
+          delay={380}
         />
+        <Stat icon={BookA} value={lesson.words.length} label="новых слов" colorClass="text-river" delay={510} />
       </div>
 
       <NewAchievements items={summary.newAchievements} />
 
-      <Card className="gap-2">
+      <Card className="animate-card-in gap-2" style={{ animationDelay: "640ms" }}>
         <div className="flex items-center gap-3">
           <Flame
-            className={summary.goalReachedNow || summary.todayXp >= summary.dailyGoalXp ? "size-7 fill-streak/30 text-streak" : "size-7 text-muted-foreground"}
+            className={cn(
+              summary.goalReachedNow || summary.todayXp >= summary.dailyGoalXp
+                ? "size-7 fill-streak/30 text-streak"
+                : "size-7 text-muted-foreground",
+              streakGrew && "animate-flame [animation-delay:1s]",
+            )}
             aria-hidden
           />
           <div>
             <p className="font-extrabold">
-              {summary.goalReachedNow
+              {streakGrew ? (
+                <>
+                  Цель дня выполнена! Серия:{" "}
+                  <AnimatedNumber value={summary.streak} from={summary.streak - 1} delay={1100} duration={400} />{" "}
+                  {plural(summary.streak, DAYS)}
+                </>
+              ) : summary.goalReachedNow
                 ? `Цель дня выполнена! Серия: ${withPlural(summary.streak, DAYS)}`
                 : summary.todayXp >= summary.dailyGoalXp
                   ? `Цель дня уже выполнена. Серия: ${withPlural(summary.streak, DAYS)}`

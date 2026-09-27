@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
-export type OttiMood = "happy" | "wink" | "confused";
+export type OttiMood = "happy" | "wink" | "confused" | "joy";
 
 type OttiProps = {
   /** Размер в пикселях (ширина = высота). */
   size?: number;
-  /** Настроение: обычная улыбка, подмигивание или растерянность. */
+  /** Настроение: обычная улыбка, подмигивание, растерянность или радость (глаза-дуги, открытая улыбка). */
   mood?: OttiMood;
   className?: string;
   /** Подпись для экранных дикторов. Если не указана — картинка считается декоративной. */
@@ -49,9 +49,18 @@ export function Otti({ size = 96, mood = "happy", className, label }: OttiProps)
       <ellipse cx="90" cy="72" rx="6" ry="3.6" className="fill-otti-blush" opacity="0.55" />
 
       {/* Глаза */}
-      <circle cx="42" cy="54" r="6.5" className="fill-otti-ink" />
-      <circle cx="44.2" cy="51.6" r="2.2" fill="#ffffff" />
-      {mood === "wink" ? (
+      {mood === "joy" ? (
+        <g fill="none" strokeWidth="3.4" strokeLinecap="round" className="stroke-otti-ink">
+          <path d="M36 56 Q42 48 48 56" />
+          <path d="M72 56 Q78 48 84 56" />
+        </g>
+      ) : (
+        <>
+          <circle cx="42" cy="54" r="6.5" className="fill-otti-ink" />
+          <circle cx="44.2" cy="51.6" r="2.2" fill="#ffffff" />
+        </>
+      )}
+      {mood === "joy" ? null : mood === "wink" ? (
         <path
           d="M72 55 Q78 48.5 84 55"
           fill="none"
@@ -96,13 +105,17 @@ export function Otti({ size = 96, mood = "happy", className, label }: OttiProps)
       <ellipse cx="57" cy="66" rx="2.4" ry="1.1" fill="#ffffff" opacity="0.6" />
 
       {/* Рот */}
-      <path
-        d={mood === "confused" ? "M54 89 Q57 86.5 60 89 Q63 91.5 66 89" : "M54 88 Q60 93.5 66 88"}
-        fill="none"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        className="stroke-otti-ink"
-      />
+      {mood === "joy" ? (
+        <path d="M52 86 Q60 97 68 86 Q60 89 52 86Z" className="fill-otti-ink" />
+      ) : (
+        <path
+          d={mood === "confused" ? "M54 89 Q57 86.5 60 89 Q63 91.5 66 89" : "M54 88 Q60 93.5 66 88"}
+          fill="none"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          className="stroke-otti-ink"
+        />
+      )}
 
       {/* Усы */}
       <g strokeWidth="1.5" strokeLinecap="round" className="stroke-otti-ink" opacity="0.35">

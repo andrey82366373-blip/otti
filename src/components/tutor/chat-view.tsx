@@ -448,6 +448,15 @@ export function ChatView(props: ChatViewProps) {
               {sessionXp > 0 && ` · +${sessionXp} XP`}
             </p>
           </div>
+          {sessionXp > 0 && (
+            <span
+              key={sessionXp}
+              aria-hidden
+              className="animate-float-up pointer-events-none rounded-full bg-xp px-2 py-0.5 text-xs font-black text-otti-ink opacity-0"
+            >
+              +XP
+            </span>
+          )}
           {canFinish && (
             <Button type="button" variant="outline" size="sm" onClick={finish} disabled={finishing || sending}>
               {finishing ? <LoaderCircle className="animate-spin" aria-hidden /> : <Flag aria-hidden />}

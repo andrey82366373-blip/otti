@@ -64,6 +64,13 @@
       "when": 1790521351948,
       "tag": "0008_chat_reliability",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790522305964,
+      "tag": "0009_feedback_prefs",
+      "breakpoints": true
     }
   ]
 }

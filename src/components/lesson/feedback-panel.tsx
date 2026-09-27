@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { CircleCheck, CircleX, RotateCcw } from "lucide-react";
 
 import { SpeakButton } from "@/components/course/speak-button";
+import { useFeedbackPrefs } from "@/components/motion/feedback-prefs";
+import { Otti } from "@/components/otti";
 import { Button } from "@/components/ui/button";
 import type { Exercise } from "@/content/course/types";
 import type { AiNote } from "@/components/lesson/check-answer";
@@ -11,6 +13,30 @@ import type { CheckResult } from "@/lib/exercise-check";
 import { cn } from "@/lib/utils";
 
 const PRAISE = ["Правильно!", "Отлично!", "Верно!", "Так держать!", "Супер!"];
+
+/** Капельки-искорки, разлетающиеся от значка верного ответа. */
+const SPARKS = [
+  { dx: -26, dy: -20 },
+  { dx: 0, dy: -30 },
+  { dx: 26, dy: -20 },
+  { dx: 30, dy: 4 },
+  { dx: -30, dy: 4 },
+  { dx: 14, dy: 22 },
+];
+
+function Sparkles() {
+  return (
+    <span aria-hidden className="pointer-events-none absolute right-1 bottom-1">
+      {SPARKS.map((spark, index) => (
+        <span
+          key={index}
+          className="animate-sparkle absolute size-1.5 rounded-full bg-success"
+          style={{ "--dx": `${spark.dx}px`, "--dy": `${spark.dy}px`, animationDelay: `${index * 25}ms` } as React.CSSProperties}
+        />
+      ))}
+    </span>
+  );
+}
 
 /** Перевод английского предложения, если он есть у задания. */
 function getTranslation(exercise: Exercise): string | undefined {
@@ -63,9 +89,13 @@ export function FeedbackPanel({
   aiNote = null,
 }: FeedbackPanelProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const { play } = useFeedbackPrefs();
 
+  // Панель появляется один раз на каждый ответ: фокус на кнопку и короткий звук
   useEffect(() => {
     buttonRef.current?.focus({ preventScroll: true });
+    play(result.correct ? "correct" : "wrong");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- звук только при появлении панели
   }, []);
 
   const translation = getTranslation(exercise);
@@ -87,11 +117,27 @@ export function FeedbackPanel({
     >
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 py-4 md:flex-row md:items-end md:justify-between md:gap-6">
         <div className="flex min-w-0 gap-3">
-          {result.correct ? (
-            <CircleCheck className="mt-0.5 size-7 shrink-0 text-success" aria-hidden />
-          ) : (
-            <CircleX className="mt-0.5 size-7 shrink-0 text-destructive" aria-hidden />
-          )}
+          {/* Отти радуется верному ответу и растерянно наклоняет голову при ошибке */}
+          <span className="relative shrink-0">
+            <Otti
+              size={52}
+              mood={result.correct ? "joy" : "confused"}
+              className={result.correct ? "animate-hop" : "animate-tilt origin-bottom"}
+            />
+            <span
+              className={cn(
+                "absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full bg-card",
+                result.correct && "animate-pop",
+              )}
+            >
+              {result.correct ? (
+                <CircleCheck className="size-6 text-success" aria-hidden />
+              ) : (
+                <CircleX className="size-6 text-destructive" aria-hidden />
+              )}
+            </span>
+            {result.correct && <Sparkles />}
+          </span>
           <div className="flex min-w-0 flex-col gap-1">
             <p className={cn("text-xl font-black", result.correct ? "text-success" : "text-destructive")}>
               {title}

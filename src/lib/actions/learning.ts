@@ -171,3 +171,29 @@ export async function setLevel(level: CefrLevel): Promise<ActionResult> {
   revalidatePath("/", "layout");
   return { ok: true };
 }
+
+const feedbackPrefsSchema = z.object({
+  soundEnabled: z.boolean().optional(),
+  reduceMotion: z.boolean().optional(),
+});
+
+/** Звуки и анимации: включить или выключить. Сохраняется в профиле — одинаково на всех устройствах. */
+export async function updateFeedbackPrefs(input: {
+  soundEnabled?: boolean;
+  reduceMotion?: boolean;
+}): Promise<ActionResult> {
+  const { user } = await requireSession();
+  const parsed = feedbackPrefsSchema.safeParse(input);
+  if (!parsed.success || Object.keys(parsed.data).length === 0) {
+    return { ok: false, error: "Настройка не распознана." };
+  }
+  try {
+    await getProfile(user.id);
+    await getDb().update(profiles).set(parsed.data).where(eq(profiles.userId, user.id));
+  } catch (error) {
+    console.error("[profile] Не удалось сохранить звуки и анимации:", error);
+    return { ok: false, error: SAVE_ERROR };
+  }
+  // Без revalidatePath: настройка уже применена в браузере, страницу перерисовывать не нужно
+  return { ok: true };
+}

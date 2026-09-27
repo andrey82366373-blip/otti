@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check, ChevronRight, Lock } from "lucide-react";
 
+import { FreshReveal } from "@/components/motion/fresh-reveal";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -75,6 +76,17 @@ function LessonNode({
     >
       {state === "completed" && <Check className="size-5" strokeWidth={3} aria-hidden />}
       {state === "current" && lesson.number}
+      {/* Только что открытый урок: замок «отщёлкивается» и исчезает */}
+      {state === "current" && previous && (
+        <FreshReveal
+          storageKey="otti:seen-unlocked"
+          id={`${lesson.id}:lock`}
+          freshClassName="animate-shackle"
+          className="pointer-events-none absolute -top-1 -right-1 opacity-0"
+        >
+          <Lock className="size-4 text-primary" aria-hidden />
+        </FreshReveal>
+      )}
       {state === "locked" && <Lock className="size-4" aria-hidden />}
     </span>
   );
@@ -91,6 +103,22 @@ function LessonNode({
       </span>
       {state === "completed" && <span className="sr-only">Урок пройден, можно повторить.</span>}
     </span>
+  );
+
+  const node = state === "current" ? (
+    <FreshReveal
+      storageKey="otti:seen-unlocked"
+      id={lesson.id}
+      enabled={Boolean(previous)}
+      freshClassName="animate-unlock rounded-full"
+      className="relative z-10 rounded-full"
+      sound="unlock"
+      badge="Открыт!"
+    >
+      {circle}
+    </FreshReveal>
+  ) : (
+    circle
   );
 
   if (state === "locked") {
@@ -111,7 +139,7 @@ function LessonNode({
           state === "current" && "bg-secondary/70 hover:bg-secondary",
         )}
       >
-        {circle}
+        {node}
         {details}
         <span className="flex items-center gap-1 text-sm font-bold text-primary">
           {state === "completed" ? "Повторить" : "Начать"}

@@ -9,7 +9,10 @@ type ProgressProps = {
   barClassName?: string;
 };
 
-/** Полоса прогресса. */
+/**
+ * Полоса прогресса. При появлении плавно заполняется с нуля (CSS @starting-style),
+ * при каждом изменении по ней пробегает блик.
+ */
 export function Progress({ value, max = 100, label, className, barClassName }: ProgressProps) {
   const percent = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   return (
@@ -22,9 +25,21 @@ export function Progress({ value, max = 100, label, className, barClassName }: P
       className={cn("h-3 w-full overflow-hidden rounded-full bg-muted", className)}
     >
       <div
-        className={cn("h-full rounded-full bg-primary transition-[width] duration-500 ease-out", barClassName)}
-        style={{ width: `${percent}%` }}
-      />
+        className={cn(
+          "relative h-full w-(--progress) overflow-hidden rounded-full bg-primary transition-[width] duration-700 ease-out starting:w-0",
+          barClassName,
+        )}
+        style={{ "--progress": `${percent}%` } as React.CSSProperties}
+      >
+        {percent > 0 && (
+          <span
+            key={value}
+            aria-hidden
+            className="animate-glint absolute inset-y-0 left-0 w-1/3 bg-linear-to-r from-transparent via-white/45 to-transparent"
+            style={{ transform: "translateX(-120%)" }}
+          />
+        )}
+      </div>
     </div>
   );
 }

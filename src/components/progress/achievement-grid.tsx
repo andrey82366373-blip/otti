@@ -1,5 +1,6 @@
 import { Lock } from "lucide-react";
 
+import { FreshReveal } from "@/components/motion/fresh-reveal";
 import { Progress } from "@/components/ui/progress";
 import { ACHIEVEMENTS, type AchievementStats } from "@/lib/achievements";
 import { formatDayLong } from "@/lib/dates";
@@ -27,14 +28,21 @@ export function AchievementGrid({
               earnedDay ? "border-xp/40 bg-xp/10" : "border-border",
             )}
           >
-            <span
-              className={cn(
-                "flex size-12 shrink-0 items-center justify-center rounded-full",
-                earnedDay ? "bg-xp text-otti-ink" : "bg-muted text-muted-foreground",
-              )}
-            >
-              {earnedDay ? <Icon className="size-6" aria-hidden /> : <Lock className="size-5" aria-hidden />}
-            </span>
+            {earnedDay ? (
+              // Новое достижение один раз «переворачивается» лицом к ученику
+              <FreshReveal
+                storageKey="otti:seen-achievements"
+                id={achievement.code}
+                freshClassName="animate-badge-in"
+                className="flex size-12 shrink-0 items-center justify-center rounded-full bg-xp text-otti-ink"
+              >
+                <Icon className="size-6" aria-hidden />
+              </FreshReveal>
+            ) : (
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Lock className="size-5" aria-hidden />
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="leading-tight font-extrabold">{achievement.title}</p>
               <p className="text-sm text-muted-foreground">{achievement.description}</p>

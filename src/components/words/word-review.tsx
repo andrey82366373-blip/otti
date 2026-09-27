@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, RotateCcw, X, Zap } from "lucide-react";
 
 import { SpeakButton } from "@/components/course/speak-button";
+import { PlayOnMount } from "@/components/motion/play-on-mount";
 import { Otti } from "@/components/otti";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,8 +91,9 @@ export function WordReview(props: { cards: ReviewCard[]; practice: boolean }) {
     const total = cards.length;
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-10 pb-16">
-        <div className="animate-pop flex flex-col items-center gap-2 text-center">
-          <Otti size={104} mood={forgotten.length === 0 ? "wink" : "happy"} />
+        {total > 0 && <PlayOnMount sound="complete" />}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Otti size={104} mood={forgotten.length === 0 ? "joy" : "happy"} className="animate-celebrate" />
           <h1 className="text-3xl font-black tracking-tight">Повторение окончено</h1>
           <p className="text-muted-foreground">
             {practice
@@ -183,7 +185,7 @@ export function WordReview(props: { cards: ReviewCard[]; practice: boolean }) {
           )}
         </div>
 
-        <Card key={`${card.id}-${position}`} className="animate-pop w-full max-w-md items-center gap-5 py-10 text-center">
+        <Card key={`${card.id}-${position}`} className="animate-card-in w-full max-w-md items-center gap-5 py-10 text-center">
           <div className="flex items-center gap-3">
             <p lang="en" className="text-4xl font-black break-words">
               {card.word}

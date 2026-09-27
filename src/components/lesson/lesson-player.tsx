@@ -10,6 +10,7 @@ import { checkAnswer, type AiNote } from "@/components/lesson/check-answer";
 import { ExerciseView, canSkip } from "@/components/lesson/exercise-view";
 import { FeedbackPanel } from "@/components/lesson/feedback-panel";
 import { LessonSummary } from "@/components/lesson/lesson-summary";
+import { SoundToggleButton } from "@/components/motion/feedback-settings";
 import { Otti } from "@/components/otti";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -179,9 +180,10 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
           className="h-4 flex-1"
           barClassName="bg-success"
         />
-        <span className="w-12 text-right text-sm font-bold text-muted-foreground tabular-nums">
+        <span className="w-10 text-right text-sm font-bold text-muted-foreground tabular-nums">
           {finishedIds.length}/{total}
         </span>
+        <SoundToggleButton />
       </header>
 
       {/* Задание */}
@@ -203,8 +205,12 @@ export function LessonPlayer({ lesson }: { lesson: Lesson }) {
         </div>
 
         <div
+          key={current.key}
           data-exercise-id={current.exercise.id}
-          className={cn(result && !result.correct && "animate-shake")}
+          className={cn(
+            "-mx-2 rounded-3xl px-2 py-2",
+            result ? (result.correct ? "animate-correct" : "animate-sway") : "animate-card-in",
+          )}
         >
           <ExerciseView
             key={current.key}

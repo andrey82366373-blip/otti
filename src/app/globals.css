@@ -156,6 +156,277 @@
   --radius-2xl: calc(var(--radius) + 8px);
 }
 
+/*
+ * Анимации Отти — свои, в «речной» теме: короткие (0,2–0,9 с), только transform и opacity,
+ * чтобы не нагружать телефон. При «Уменьшить движение» (в системе или в профиле) отключаются.
+ */
+@theme {
+  --animate-card-in: otti-card-in 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-sway: otti-sway 0.55s ease-out;
+  --animate-correct: otti-correct 0.6s ease-out;
+  --animate-hop: otti-hop 0.65s cubic-bezier(0.3, 0.7, 0.4, 1);
+  --animate-tilt: otti-tilt 0.7s ease-in-out;
+  --animate-bob: otti-bob 1.4s ease-in-out infinite;
+  --animate-float-up: otti-float-up 1.3s ease-out forwards;
+  --animate-glint: otti-glint 0.9s ease-out;
+  --animate-flame: otti-flame 0.9s ease-out;
+  --animate-roll-in: otti-roll-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-unlock: otti-unlock 1.2s ease-out;
+  --animate-shackle: otti-shackle 0.6s ease-out forwards;
+  --animate-badge-in: otti-badge-in 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  --animate-shine: otti-shine 1.1s ease-out 0.4s both;
+  --animate-ripple: otti-ripple 1.4s ease-out both;
+  --animate-celebrate: otti-celebrate 0.9s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+  --animate-sparkle: otti-sparkle 0.6s ease-out forwards;
+  --animate-fade-in: otti-fade-in 0.3s ease-out both;
+
+  @keyframes otti-card-in {
+    from {
+      transform: translateY(14px) scale(0.985);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* Ошибка: мягкое покачивание, как лодка на волне — без резкой тряски */
+  @keyframes otti-sway {
+    0%,
+    100% {
+      transform: none;
+    }
+    15% {
+      transform: translateX(-6px) rotate(-1deg);
+    }
+    35% {
+      transform: translateX(5px) rotate(0.8deg);
+    }
+    55% {
+      transform: translateX(-3px) rotate(-0.4deg);
+    }
+    75% {
+      transform: translateX(1px);
+    }
+  }
+
+  /* Верный ответ: зелёная «волна» расходится от карточки */
+  @keyframes otti-correct {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--success) 45%, transparent);
+      transform: none;
+    }
+    35% {
+      transform: scale(1.012);
+    }
+    100% {
+      box-shadow: 0 0 0 16px color-mix(in oklab, var(--success) 0%, transparent);
+      transform: none;
+    }
+  }
+
+  @keyframes otti-hop {
+    0%,
+    100% {
+      transform: none;
+    }
+    30% {
+      transform: translateY(-10px) scale(1.04, 0.97);
+    }
+    55% {
+      transform: translateY(0) scale(1.05, 0.94);
+    }
+    75% {
+      transform: translateY(-3px);
+    }
+  }
+
+  @keyframes otti-tilt {
+    0%,
+    100% {
+      transform: none;
+    }
+    25% {
+      transform: rotate(-9deg);
+    }
+    55% {
+      transform: rotate(6deg);
+    }
+    80% {
+      transform: rotate(-2deg);
+    }
+  }
+
+  @keyframes otti-bob {
+    0%,
+    100% {
+      transform: none;
+    }
+    50% {
+      transform: translateY(-2px) rotate(-2deg);
+    }
+  }
+
+  @keyframes otti-float-up {
+    0% {
+      transform: translateY(4px);
+      opacity: 0;
+    }
+    20% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-26px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes otti-glint {
+    from {
+      transform: translateX(-120%);
+    }
+    to {
+      transform: translateX(260%);
+    }
+  }
+
+  @keyframes otti-flame {
+    0%,
+    100% {
+      transform: none;
+      filter: none;
+    }
+    30% {
+      transform: scale(1.4) rotate(-8deg);
+      filter: drop-shadow(0 0 6px var(--streak));
+    }
+    55% {
+      transform: scale(0.92) rotate(4deg);
+    }
+    75% {
+      transform: scale(1.12);
+      filter: drop-shadow(0 0 3px var(--streak));
+    }
+  }
+
+  @keyframes otti-roll-in {
+    from {
+      transform: translateY(70%);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  @keyframes otti-unlock {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 50%, transparent);
+    }
+    40% {
+      box-shadow: 0 0 0 10px color-mix(in oklab, var(--primary) 18%, transparent);
+    }
+    100% {
+      box-shadow: 0 0 0 18px color-mix(in oklab, var(--primary) 0%, transparent);
+    }
+  }
+
+  @keyframes otti-shackle {
+    0% {
+      transform: none;
+      opacity: 1;
+    }
+    40% {
+      transform: translateY(-4px) rotate(-18deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-10px) rotate(-30deg) scale(0.6);
+      opacity: 0;
+    }
+  }
+
+  @keyframes otti-badge-in {
+    0% {
+      transform: perspective(400px) rotateY(95deg) scale(0.6);
+      opacity: 0;
+    }
+    60% {
+      transform: perspective(400px) rotateY(-12deg) scale(1.08);
+      opacity: 1;
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  @keyframes otti-shine {
+    from {
+      transform: translateX(-150%) skewX(-20deg);
+    }
+    to {
+      transform: translateX(250%) skewX(-20deg);
+    }
+  }
+
+  /* Круги по воде за Отти — празднование */
+  @keyframes otti-ripple {
+    from {
+      transform: scale(0.45);
+      opacity: 0.55;
+    }
+    to {
+      transform: scale(1.7);
+      opacity: 0;
+    }
+  }
+
+  @keyframes otti-celebrate {
+    0% {
+      transform: translateY(20px) scale(0.8);
+      opacity: 0;
+    }
+    45% {
+      transform: translateY(-14px) scale(1.06);
+      opacity: 1;
+    }
+    70% {
+      transform: translateY(0) scale(0.98);
+    }
+    85% {
+      transform: translateY(-4px);
+    }
+    100% {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  @keyframes otti-sparkle {
+    from {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    to {
+      transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(0.3);
+      opacity: 0;
+    }
+  }
+
+  @keyframes otti-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
 /* Анимации уроков: встряска при ошибке, появление, конфетти */
 @theme {
   --animate-shake: otti-shake 0.45s ease-in-out;
@@ -258,8 +529,41 @@
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* …и такую же настройку в профиле Отти */
+  [data-motion="reduced"] *,
+  [data-motion="reduced"] *::before,
+  [data-motion="reduced"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+  /* Заготовка содержимого при загрузке: мягкий перелив слева направо */
+  .skeleton {
+    background: linear-gradient(
+        100deg,
+        transparent 20%,
+        color-mix(in oklab, var(--card) 70%, transparent) 50%,
+        transparent 80%
+      )
+      var(--muted);
+    background-size: 200% 100%;
+    background-position: 120% 0;
+    animation: otti-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @keyframes otti-shimmer {
+    to {
+      background-position: -80% 0;
     }
   }
 }

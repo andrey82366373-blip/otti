@@ -69,7 +69,7 @@ export function MatchPairsExercise({ exercise, onAnswer, result }: ExerciseProps
             className={cn(
               "min-h-14 rounded-2xl border-2 px-3 py-3 text-center text-lg font-bold transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-default",
               optionStateClass(state),
-              state === "wrong" && "animate-shake",
+              state === "wrong" && "animate-sway",
               isMatched && "opacity-70",
             )}
           >

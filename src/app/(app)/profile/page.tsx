@@ -7,6 +7,7 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SettingsForm } from "@/components/learning/settings-form";
 import { PageHeader } from "@/components/page-header";
 import { InstallCard } from "@/components/pwa/install-card";
+import { FeedbackSettings } from "@/components/motion/feedback-settings";
 import { ThemeSelect } from "@/components/theme-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +73,14 @@ export default async function ProfilePage() {
             <CardDescription>Запоминается на этом устройстве.</CardDescription>
           </CardHeader>
           <ThemeSelect />
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Звуки и анимации</CardTitle>
+            <CardDescription>Сохраняется в профиле — одинаково на всех устройствах.</CardDescription>
+          </CardHeader>
+          <FeedbackSettings />
         </Card>
 
         <InstallCard />

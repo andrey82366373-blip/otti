@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { FeedbackPrefsProvider } from "@/components/motion/feedback-prefs";
 import { getProfile } from "@/lib/profile";
 import { requireSession } from "@/lib/session";
 
@@ -10,5 +11,9 @@ export default async function FocusLayout({ children }: { children: React.ReactN
   if (!profile.onboardingCompleted) {
     redirect("/onboarding");
   }
-  return <div className="min-h-dvh">{children}</div>;
+  return (
+    <FeedbackPrefsProvider soundEnabled={profile.soundEnabled} reduceMotion={profile.reduceMotion}>
+      <div className="min-h-dvh">{children}</div>
+    </FeedbackPrefsProvider>
+  );
 }

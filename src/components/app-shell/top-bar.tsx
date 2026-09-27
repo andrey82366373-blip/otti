@@ -1,28 +1,8 @@
 import Link from "next/link";
-import { Flame, Zap } from "lucide-react";
 
+import { TopBarStats } from "@/components/app-shell/top-bar-stats";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
-
-type StatProps = {
-  icon: typeof Flame;
-  value: number;
-  label: string;
-  colorClass: string;
-};
-
-function Stat({ icon: Icon, value, label, colorClass }: StatProps) {
-  return (
-    <div
-      title={label}
-      className="flex items-center gap-1 rounded-full px-1.5 py-1 text-base font-extrabold tabular-nums sm:px-2"
-    >
-      <Icon className={`size-5 ${colorClass}`} aria-hidden />
-      <span>{value}</span>
-      <span className="sr-only">— {label}</span>
-    </div>
-  );
-}
 
 /** Первая буква имени для кружка-аватара. */
 function getInitial(name: string) {
@@ -48,17 +28,7 @@ export function TopBar({
         <Logo href="/learn" className="md:hidden" />
 
         <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
-          <Stat
-            icon={Flame}
-            value={streak}
-            label={
-              streakActiveToday
-                ? "дней подряд, сегодня цель выполнена"
-                : "дней подряд, сегодня цель ещё не выполнена"
-            }
-            colorClass={streakActiveToday ? "fill-streak/30 text-streak" : "text-muted-foreground"}
-          />
-          <Stat icon={Zap} value={xp} label="очков опыта (XP)" colorClass="text-xp" />
+          <TopBarStats streak={streak} streakActiveToday={streakActiveToday} xp={xp} />
           {/* На очень узких экранах тема меняется в профиле */}
           <div className="hidden min-[360px]:block">
             <ThemeToggle />

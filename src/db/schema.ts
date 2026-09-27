@@ -191,6 +191,10 @@ export const profiles = pgTable("profiles", {
   longestStreak: integer("longest_streak").notNull().default(0),
   lastActiveDate: date("last_active_date"),
   onboardingCompleted: boolean("onboarding_completed").notNull().default(false),
+  /** Звуки правильного и неправильного ответа. */
+  soundEnabled: boolean("sound_enabled").notNull().default(true),
+  /** Уменьшить анимации (в дополнение к системной настройке «Уменьшить движение»). */
+  reduceMotion: boolean("reduce_motion").notNull().default(false),
   /** Тариф: пока всегда "free". Задел под будущую подписку. */
   plan: text("plan").notNull().default("free"),
   createdAt: createdAt(),
