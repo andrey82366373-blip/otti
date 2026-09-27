@@ -256,7 +256,7 @@ function questionsWord(count: number): string {
 }
 
 /** Оценка Writing/Speaking по нескольким проверкам ИИ: среднее, с шириной по числу проверок. */
-export function productiveEstimate(mids: number[], unit: string): BandEstimate | null {
+export function productiveEstimate(mids: number[]): BandEstimate | null {
   if (mids.length === 0) return null;
   const mid = roundBand(mids.reduce((sum, value) => sum + value, 0) / mids.length);
   const confidence: Confidence = mids.length === 1 ? "low" : "medium";
@@ -265,7 +265,7 @@ export function productiveEstimate(mids: number[], unit: string): BandEstimate |
     high: roundBand(Math.min(9, mid + 0.5)),
     mid,
     confidence,
-    basis: `по ${mids.length} ${unit}`,
+    basis: mids.length === 1 ? "по одной проверке ИИ" : `по ${mids.length} проверкам ИИ`,
   };
 }
 

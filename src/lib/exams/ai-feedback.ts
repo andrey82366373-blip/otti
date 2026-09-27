@@ -162,9 +162,9 @@ export type SpeakingCheckInput = {
   recognitionConfidence: number | null;
 };
 
-/** Минимум слов для оценки Speaking в баллах. */
+/** Минимум слов для оценки Speaking в баллах: монолог Part 2 — от 90 слов, Part 1 и 3 — от 60 слов и минимум 3 ответа. */
 export function minSpeakingWordsForBand(part: 1 | 2 | 3): number {
-  return part === 2 ? 90 : 80;
+  return part === 2 ? 90 : 60;
 }
 
 /** Хватает ли данных, чтобы что-то говорить о произношении. */
@@ -249,7 +249,8 @@ export function parseSpeakingFeedback(raw: string, input: SpeakingCheckInput): S
   const note = readString(json.pronunciation_note ?? json.pronunciationNote, 500) ?? null;
   const bands = [fluency.band, lexical.band, grammar.band];
   const mid = roundBand(bands.reduce((sum, value) => sum + value, 0) / bands.length);
-  const enough = words >= minSpeakingWordsForBand(input.task.part);
+  const enough =
+    words >= minSpeakingWordsForBand(input.task.part) && (input.task.part === 2 || input.answers.length >= 3);
 
   return {
     fluency,

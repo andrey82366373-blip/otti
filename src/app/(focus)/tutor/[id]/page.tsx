@@ -49,6 +49,7 @@ export default async function ChatPage({ params }: PageProps) {
       maxChars={limits.maxInputChars}
       maxMessages={limits.threadMaxMessages}
       dictionary={dictionary}
+      examHref="/exams/ielts"
     />
   );
 }

@@ -471,7 +471,7 @@ export async function answerGoalSwitch(input: { messageId: string; accept: boole
 }
 
 /** Куда вести ученика после согласия перейти к IELTS. */
-const GOAL_SWITCH_TARGET: string | null = null;
+const GOAL_SWITCH_TARGET = "/exams/ielts";
 
 /* ──────────────────────── Слово из чата в словарь ──────────────────────── */
 

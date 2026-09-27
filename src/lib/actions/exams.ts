@@ -385,7 +385,14 @@ function aiFailure(error: unknown, requestId: string): CheckFailure {
 }
 
 /** Даёт XP за проверку задания — один раз в день за задание. */
-async function awardProductiveXp(userId: string, skill: CheckKind, taskId: string, checkId: string, overall: BandEstimate | null) {
+async function awardProductiveXp(
+  userId: string,
+  skill: CheckKind,
+  taskId: string,
+  checkId: string,
+  overall: BandEstimate | null,
+  durationSec = 0,
+) {
   const profile = await getProfile(userId);
   const today = todayInTimezone(profile.timezone);
   let xpEarned = 0;
@@ -408,6 +415,7 @@ async function awardProductiveXp(userId: string, skill: CheckKind, taskId: strin
       bandLow: overall?.low ?? null,
       bandHigh: overall?.high ?? null,
       answers: { checkId },
+      durationSec,
     });
     if ((sameToday?.total ?? 0) === 0) {
       xpEarned = PRODUCTIVE_XP;
@@ -529,7 +537,14 @@ export async function checkWriting(input: z.infer<typeof writingSchema>): Promis
       .update(examAiChecks)
       .set({ status: "done", writing: feedback })
       .where(eq(examAiChecks.id, checkId));
-    const xpEarned = await awardProductiveXp(userId, "writing", parsed.data.taskId, checkId, feedback.overall);
+    const xpEarned = await awardProductiveXp(
+      userId,
+      "writing",
+      parsed.data.taskId,
+      checkId,
+      feedback.overall,
+      parsed.data.durationSec ?? 0,
+    );
     revalidatePath("/", "layout");
     return {
       ok: true,
@@ -739,8 +754,8 @@ export async function completeDiagnostic(): Promise<
     const skills = {
       reading: objectiveEstimate(reading.correct, reading.total, "reading", examProfile.module),
       listening: objectiveEstimate(listening.correct, listening.total, "listening", examProfile.module),
-      writing: range(writing) ? productiveEstimate([(writing!.bandLow! + writing!.bandHigh!) / 2], "проверке") : null,
-      speaking: range(speaking) ? productiveEstimate([(speaking!.bandLow! + speaking!.bandHigh!) / 2], "проверке") : null,
+      writing: range(writing) ? productiveEstimate([(writing!.bandLow! + writing!.bandHigh!) / 2]) : null,
+      speaking: range(speaking) ? productiveEstimate([(speaking!.bandLow! + speaking!.bandHigh!) / 2]) : null,
     };
     const overall = overallEstimate(skills);
     const estimate = overall ? { ...overall, confidence: "low" as const, basis: "по короткой диагностике" } : null;

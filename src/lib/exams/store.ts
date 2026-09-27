@@ -62,7 +62,7 @@ export function estimateSkills(attempts: ExamAttempt[], module: "academic" | "ge
       .filter((attempt) => attempt.skill === skill && attempt.bandLow !== null && attempt.bandHigh !== null)
       .slice(0, POOL_CHECKS)
       .map((attempt) => ((attempt.bandLow ?? 0) + (attempt.bandHigh ?? 0)) / 2);
-    return productiveEstimate(mids, "проверкам ИИ");
+    return productiveEstimate(mids);
   };
   const skills = {
     reading: objective("reading"),
@@ -142,4 +142,14 @@ export function bestByTask(attempts: ExamAttempt[]) {
 export function isCheckUsable(check: ExamCheck | null): check is ExamCheck {
   if (!check) return false;
   return check.status === "done" || Date.now() - check.createdAt.getTime() < 3 * 60 * 1000;
+}
+
+/** Последние готовые проверки Writing/Speaking — для «повторяющихся ошибок». */
+export async function getRecentChecks(userId: string, limit = 20): Promise<ExamCheck[]> {
+  return getDb()
+    .select()
+    .from(examAiChecks)
+    .where(and(eq(examAiChecks.userId, userId), eq(examAiChecks.status, "done")))
+    .orderBy(desc(examAiChecks.createdAt))
+    .limit(limit);
 }

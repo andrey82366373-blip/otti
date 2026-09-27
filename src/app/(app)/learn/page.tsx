@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Info, PartyPopper } from "lucide-react";
+import { Award, Info, PartyPopper } from "lucide-react";
 
 import { LessonMap } from "@/components/course/lesson-map";
 import { TodayCard, type TodayTask } from "@/components/dashboard/today-card";
@@ -147,6 +147,19 @@ export default async function LearnPage() {
                 Новые уроки появятся в следующих версиях. А пока — повторяй и болтай с Отти.
               </p>
             </div>
+          </Card>
+        )}
+
+        {profile.goal === "exam" && (
+          <Card className="animate-card-in flex-row flex-wrap items-center gap-3 border-primary/30">
+            <Award className="size-7 shrink-0 text-primary" aria-hidden />
+            <div className="min-w-0 flex-1 basis-56">
+              <p className="font-extrabold">Подготовка к IELTS</p>
+              <p className="text-sm text-muted-foreground">Учебный план, задания в формате экзамена и примерный балл.</p>
+            </div>
+            <Button asChild className="w-full sm:w-auto">
+              <Link href="/exams/ielts">Открыть</Link>
+            </Button>
           </Card>
         )}
 
