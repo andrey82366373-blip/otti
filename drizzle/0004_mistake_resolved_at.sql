@@ -1,0 +1,1 @@
+ALTER TABLE "mistakes" ADD COLUMN "resolved_at" timestamp with time zone;

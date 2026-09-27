@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Нет подключения · Otti</title>
+<meta name="theme-color" content="#f6f6fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1022" media="(prefers-color-scheme: dark)">
+<style>
+  :root { --bg: #f6f6fb; --fg: #1c1b33; --muted: #62617a; --primary: #5b4de6; --on-primary: #ffffff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0f1022; --fg: #ecebf8; --muted: #a3a2c2; --primary: #8f84ff; --on-primary: #14122e; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: "Nunito Variable", "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 24px 16px; text-align: center;
+  }
+  h1 { margin: 0; font-size: 28px; font-weight: 900; letter-spacing: -0.01em; }
+  p { margin: 0; max-width: 340px; color: var(--muted); line-height: 1.5; }
+  button {
+    margin-top: 8px; min-height: 48px; padding: 0 28px; border: 0; border-radius: 14px; cursor: pointer;
+    background: var(--primary); color: var(--on-primary); font: inherit; font-weight: 800; font-size: 16px;
+  }
+  button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+</style>
+</head>
+<body>
+<main>
+  <svg width="112" height="92" viewBox="4 16 112 92" aria-hidden="true">
+  <ellipse cx="19" cy="50" rx="8" ry="8.5" fill="#7a4a31"/>
+  <ellipse cx="101" cy="50" rx="8" ry="8.5" fill="#7a4a31"/>
+  <path d="M60 22 C88 22 106 40 106 64 C106 88 86 102 60 102 C34 102 14 88 14 64 C14 40 32 22 60 22Z" fill="#9a6243"/>
+  <path d="M60 50 C80 50 94 62 94 78 C94 92 79 100 60 100 C41 100 26 92 26 78 C26 62 40 50 60 50Z" fill="#f6e2c9"/>
+  <circle cx="42" cy="54" r="7.5" fill="#211c2e"/>
+  <circle cx="78" cy="54" r="7.5" fill="#211c2e"/>
+  <circle cx="44.6" cy="51.4" r="2.5" fill="#ffffff"/>
+  <circle cx="80.6" cy="51.4" r="2.5" fill="#ffffff"/>
+  <circle cx="51.5" cy="75" r="10.5" fill="#fbeedd"/>
+  <circle cx="68.5" cy="75" r="10.5" fill="#fbeedd"/>
+  <path d="M51.5 65 Q60 61.5 68.5 65 Q68 72.5 60 74 Q52 72.5 51.5 65Z" fill="#211c2e"/>
+  <path d="M54 88 Q60 94 66 88" fill="none" stroke="#211c2e" stroke-width="3" stroke-linecap="round"/>
+</svg>
+  <h1>Нет подключения к интернету</h1>
+  <p>Отти не может загрузить страницу. Проверь Wi-Fi или мобильный интернет — как только связь появится, всё заработает.</p>
+  <button type="button" onclick="location.reload()">Попробовать снова</button>
+</main>
+  <script>window.addEventListener("online", function () { location.reload(); });</script>
+</body>
+</html>

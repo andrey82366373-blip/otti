@@ -1,0 +1,1 @@
+ALTER TABLE "user_words" ADD COLUMN "example_ru" text;

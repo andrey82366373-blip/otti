@@ -1,0 +1,1 @@
+ALTER TABLE "daily_activity" ADD COLUMN "goal_xp" integer DEFAULT 0 NOT NULL;

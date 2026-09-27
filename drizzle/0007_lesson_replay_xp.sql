@@ -1,0 +1,1 @@
+ALTER TABLE "lesson_progress" ADD COLUMN "last_replay_xp_on" date;
